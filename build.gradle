@@ -84,7 +84,8 @@ bintray {
     dryRun = false
 
     pkg {
-        repo = 'generic'
+        userOrg = 'vantiq'
+        repo = 'maven'
         name = archivesBaseName
         desc = 'Vantiq SDK for Java and Android'
 
