@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/Vantiq/vantiq-sdk-java.svg?branch=master)](https://travis-ci.org/Vantiq/vantiq-sdk-java)
 
-# Vantiq Java SDK
+# Vantiq SDK for Java
 
 The [Vantiq](http://www.vantiq.com) Java SDK is a Java library that provides an API into a Vantiq system for Android and standalone Java applications.  The SDK connects to a Vantiq system using the [Vantiq REST API](https://dev.vantiq.com/docs/api/developer.html#api-reference-guide).
 
@@ -40,6 +40,8 @@ In Maven,
             <scope>compile</scope>
         </dependency>
     </dependencies>    
+
+The Vantiq SDK for Java requires Java 7 or later.
 
 ## Quick Start
 

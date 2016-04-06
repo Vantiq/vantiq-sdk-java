@@ -15,6 +15,10 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Internal class that manages the authenticated access and interface
+ * to the Vantiq REST API.
+ */
 public class VantiqSession {
 
     public final static int DEFAULT_API_VERSION = 1;
@@ -36,6 +40,8 @@ public class VantiqSession {
 
     /**
      * Returns if the current session is authenticated.
+     *
+     * @return true if authenticated successfully
      */
     public boolean isAuthenticated() {
         return this.authenticated;
@@ -43,11 +49,17 @@ public class VantiqSession {
 
     /**
      * Returns the current access token.  If not authenticated, this is null.
+     *
+     * @return The access token used for requests or null if not an authenticated session.
      */
     public String getAccessToken() {
         return this.accessToken;
     }
 
+    /**
+     * This class provides a bridge between the {@link okhttp3.Callback} used
+     * in the underlying OkHttp request and the {@link io.vantiq.client.ResponseHandler}
+     */
     static class CallbackAdapter implements Callback {
 
         private static final JsonParser parser = new JsonParser();
@@ -60,6 +72,12 @@ public class VantiqSession {
             this.responseHandler = responseHandler;
         }
 
+        /**
+         * Provides a hook that is called when the successful response is JSON.
+         * The default implementation is no-op.
+         *
+         * @param jsonBody The parsed response body.
+         */
         protected void responseHook(JsonElement jsonBody) {}
 
         @Override
@@ -74,6 +92,7 @@ public class VantiqSession {
                         responseHook(jsonBody);
                         this.responseHandler.onSuccess(jsonBody, response);
                     } else {
+                        responseHook(null);
                         this.responseHandler.onSuccess(null, response);
                     }
                 } else {
@@ -98,13 +117,13 @@ public class VantiqSession {
 
     }
 
-
     /**
-     * Authenticates onto the Vantiq server using the
-     * provided credentials.
+     * Authenticates onto the Vantiq server with the provided credentials.  After
+     * this call completes, the credentials are not stored.
      *
-     * @param username String
-     * @param password String
+     * @param username The username for the Vantiq server
+     * @param password The password for the Vantiq server
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void authenticate(String username, String password, ResponseHandler responseHandler) {
         String authValue = "Basic " +
@@ -113,7 +132,7 @@ public class VantiqSession {
         this.request(authValue, "GET", "authenticate", null, null, new CallbackAdapter(responseHandler) {
             @Override
             public void responseHook(JsonElement jsonBody) {
-                if(jsonBody.isJsonObject()) {
+                if(jsonBody != null && jsonBody.isJsonObject()) {
                     JsonElement token = ((JsonObject) jsonBody).get("accessToken");
                     if(token != null) {
                         VantiqSession.this.accessToken = token.getAsString();
@@ -137,6 +156,8 @@ public class VantiqSession {
 
     /**
      * Returns the full path for the HTTP request given the path
+     *
+     * @param path The partial path (everything past <code>/api/v#/</code>
      */
     private String fullpath(String path) {
         if(path.startsWith("/")) {
@@ -147,6 +168,10 @@ public class VantiqSession {
 
     /**
      * Perform a HTTP GET request against a given path
+     *
+     * @param path The unencoded partial path for the GET (without any query parameters)
+     * @param queryParams The unencoded query parameters included in the request
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void get(String path,
                     Map<String,String> queryParams,
@@ -157,6 +182,11 @@ public class VantiqSession {
 
     /**
      * Perform a HTTP POST request against a specific path
+     *
+     * @param path The unencoded partial path for the POST (without any query parameters)
+     * @param queryParams The unencoded query parameters included in the request
+     * @param body The JSON encoding string included in the body of the request
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void post(String path,
                      Map<String,String> queryParams,
@@ -168,6 +198,11 @@ public class VantiqSession {
 
     /**
      * Perform a HTTP PUT request for a specific path
+     *
+     * @param path The unencoded partial path for the PUT (without any query parameters)
+     * @param queryParams The unencoded query parameters included in the request
+     * @param body The JSON encoding string included in the body of the request
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void put(String path,
                     Map<String,String> queryParams,
@@ -179,6 +214,10 @@ public class VantiqSession {
 
     /**
      * Perform a HTTP DELETE request against a given path
+     *
+     * @param path The unencoded partial path for the DELETE (without any query parameters)
+     * @param queryParams The unencoded query parameters included in the request
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void delete(String path,
                        Map<String,String> queryParams,
@@ -191,6 +230,17 @@ public class VantiqSession {
     // Request support using OkHttp
     //----------------------------------------------------------------
 
+    /**
+     * All requests to the Vantiq server are performed using this
+     * method.  All request bodies are expected to be JSON.
+     *
+     * @param authValue The value of the "Authorization" header.
+     * @param method The HTTP method to use (e.g. GET, POST, etc)
+     * @param path The full unencoded URL path to use (without query parameters)
+     * @param queryParams The unencoded query parameters to include in the request
+     * @param body The optional request body to include.
+     * @param callback The callback that is called to handle the HTTP response
+     */
     private void request(String authValue,
                          String method,
                          String path,

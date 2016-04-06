@@ -94,6 +94,8 @@ public class Vantiq {
     /**
      * Returns if this Vantiq instance has been successfully
      * authenticated with the Vantiq server instance.
+     *
+     * @return true if authenticated successfully
      */
     public boolean isAuthenticated() {
         return this.session.isAuthenticated();
@@ -102,6 +104,10 @@ public class Vantiq {
     /**
      * Authenticates this Vantiq instance using the given credentials.  The response
      * handler "onSuccess" will return true if the authentication was successful.
+     *
+     * @param username The username for the Vantiq server
+     * @param password The password for the Vantiq server
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void authenticate(String username, String password, ResponseHandler responseHandler) {
         this.session.authenticate(username, password, new PassThruResponseHandler(responseHandler) {
@@ -114,14 +120,17 @@ public class Vantiq {
     }
 
     /**
-     * Performs a query to return matching records.  The response body will
+     * Performs a query to search for records that match the given constraints.  The response body will
      * be a List of JsonObject objects.
      *
-     * @param resource
-     * @param propSpecs
-     * @param where
-     * @param sortSpec
-     * @param responseHandler
+     * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
+     *                 a user-defined type name.
+     * @param propSpecs The optional list of properties to return in each record.  A null or empty list returns all properties.
+     * @param where The optional where constraint that filters the records returned.  The where is structured
+     *              following the structure outline in the
+     *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     * @param sortSpec The optional sort specification to order the returned records.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void select(String resource,
                        List<String> propSpecs,
@@ -157,11 +166,12 @@ public class Vantiq {
     }
 
     /**
-     * Returns the record for the given resource and specified id.
+     * Returns the record for the given resource and specified id.  The response is a single JsonObject.
      *
-     * @param resource
-     * @param id
-     * @param responseHandler
+     * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
+     *                 a user-defined type name.
+     * @param id The key used to lookup the record.  The underlying "_id" can be used.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void selectOne(String resource,
                           String id,
@@ -171,11 +181,15 @@ public class Vantiq {
     }
 
     /**
-     * Performs a query to count the matching records.
+     * This method is similar to {@link #select} except returns only the count of matching records.  The
+     * response is an Integer.
      *
-     * @param resource
-     * @param where
-     * @param responseHandler
+     * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
+     *                 a user-defined type name.
+     * @param where The optional where constraint that filters the records returned.  The where is structured
+     *              following the structure outline in the
+     *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void count(String resource,
                       Object where,
@@ -210,11 +224,13 @@ public class Vantiq {
     }
 
     /**
-     * Inserts a new resource record
+     * Inserts a new record of the specified resource type.  The response is a JsonObject of the record
+     * just inserted.
      *
-     * @param resource
-     * @param object
-     * @param responseHandler
+     * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
+     *                 a user-defined type name.
+     * @param object The object to insert.  This will be converted to JSON using Gson.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void insert(String resource,
                        Object object,
@@ -224,29 +240,34 @@ public class Vantiq {
     }
 
     /**
-     * Updates an existing resource record
+     * Updates an existing record of the specified resource type.  The response is a JsonObject of the record
+     * just updated.
      *
-     * @param resource
-     * @param key
-     * @param object
-     * @param responseHandler
+     * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
+     *                 a user-defined type name.
+     * @param id The key used to lookup the record.  The underlying "_id" can be used.
+     * @param object The object to insert.  This will be converted to JSON using Gson.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void update(String resource,
-                       String key,
+                       String id,
                        Object object,
                        ResponseHandler responseHandler) {
-        String path = "/resources/" + resource + "/" + key;
+        String path = "/resources/" + resource + "/" + id;
         this.session.put(path, null, gson.toJson(object), responseHandler);
     }
 
     /**
-     * Upsert a resource.  If the resource already exists (as
-     * defined by a natural key), then update it.  Otherwise,
-     * insert a new record.
+     * Upserts a record of the specified resource type.  If the record does not already exist,
+     * then a new record is inserted.  If the record does exist, then the record is updated.
+     * The existence of the record is defined by the natural key defined on the type.
      *
-     * @param resource
-     * @param object
-     * @param responseHandler
+     * The response is a JsonObject that is the record just upserted.
+     *
+     * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
+     *                 a user-defined type name.
+     * @param object The object to insert.  This will be converted to JSON using Gson.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void upsert(String resource,
                        Object object,
@@ -268,11 +289,15 @@ public class Vantiq {
     }
 
     /**
-     * Deletes a number of records matching the given where clause.
+     * Deletes the matching records specified by a where constraint.  The response is a boolean
+     * indicating the success of the removal.
      *
-     * @param resource
-     * @param where
-     * @param responseHandler
+     * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
+     *                 a user-defined type name.
+     * @param where The required where constraint that filters the records returned.  The where is structured
+     *              following the structure outline in the
+     *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void delete(String resource,
                        Object where,
@@ -294,11 +319,13 @@ public class Vantiq {
     }
 
     /**
-     * Deletes the record for the given resource and specified id.
+     * Deletes the record for the given resource and specified id.   The response is a boolean
+     * indicating the success of the removal.
      *
-     * @param resource
-     * @param id
-     * @param responseHandler
+     * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
+     *                 a user-defined type name.
+     * @param id The key used to lookup the record.  The underlying "_id" can be used.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void deleteOne(String resource,
                           String id,
@@ -313,16 +340,24 @@ public class Vantiq {
     }
 
     /**
-     * Publishes onto a topic or a source
+     * Publishes to a specific topic or source.  A publish operation is asynchronous (i.e. fire-and-forget).
+     * The response is a boolean indicating the success of the publish.
      *
-     * @param resource
-     * @param id
-     * @param payload
-     * @param responseHandler
+     * For sources, the parameters required are source specific and are the same as those required when
+     * performing a <code>PUBLISH ... TO SOURCE ... USING</code> params.
+     * Please refer to the specific source definition documentation in the
+     * <a href="https://dev.vantiq.com/docs/api/index.html">Vantiq API Documentation</a>.
+     *
+     * @param resource The resource to query.  This must be the value of either
+     *                 {@link Vantiq.SystemResources#TOPICS} or {@link Vantiq.SystemResources#SOURCES}.
+     * @param id The topic or source to publish.
+     * @param payload For a topic, this is the message to publish.  For a source, this is the parameters that
+     *                defines the publish.  This will be converted to JSON using Gson.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void publish(String resource,
                         String id,
-                        JsonObject payload,
+                        Object payload,
                         ResponseHandler responseHandler) {
         if(!SystemResources.SOURCES.value().equals(resource) &&
            !SystemResources.TOPICS.value().equals(resource)) {
@@ -339,28 +374,37 @@ public class Vantiq {
     }
 
     /**
-     * Executes a specified procedure with the given arguments
+     * Executes a specific procedure.  An execute operation is synchronous (i.e. request-response).
+     * The response is a JsonObject with the result of the procedure.
      *
-     * @param procedure
-     * @param params
-     * @param responseHandler
+     * @param procedure The name of the procedure to execute.
+     * @param params The arguments for the procedure.  The parameters can be passed as positional
+     *               parameters using a JsonArray or as named parameters using a JsonObject.  The params
+     *               is converted to JSON using Gson.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void execute(String procedure,
-                        JsonObject params,
+                        Object params,
                         ResponseHandler responseHandler) {
         String path = "/resources/procedures/" + procedure;
         this.session.post(path, null, gson.toJson(params), responseHandler);
     }
 
     /**
-     * Queries a specified source
+     * Performs a query operation on the specified source.  A query operation is synchronous (i.e. request-response).
+     * The response is a JsonObject with the result of the source query operation.
      *
-     * @param source
-     * @param params
-     * @param responseHandler
+     * The parameters required are source specific and are the same as those required when performing
+     * a <code>SELECT ... FROM SOURCE ... WITH</code> params. Please refer to the specific source
+     * definition documentation in the
+     * <a href="https://dev.vantiq.com/docs/api/index.html">Vantiq API Documentation</a>.
+     *
+     * @param source The name of the source to query.
+     * @param params The arguments for the query operation.  The params is converted to JSON using Gson.
+     * @param responseHandler The response handler that is called upon completion.
      */
     public void query(String source,
-                      JsonObject params,
+                      Object params,
                       ResponseHandler responseHandler) {
         String path = "/resources/sources/" + source + "/query";
         this.session.post(path, null, gson.toJson(params), responseHandler);
