@@ -54,7 +54,7 @@ public class VantiqRequestTest extends VantiqTestBase {
     @Test
     public void testSystemResources() {
         // Simple test to ensure that system resources are defined
-        assertThat("SystemResources", Vantiq.SystemResources.TYPES.getResource(), is("types"));
+        assertThat("SystemResources", Vantiq.SystemResources.TYPES.value(), is("types"));
     }
 
     @Test
@@ -329,7 +329,7 @@ public class VantiqRequestTest extends VantiqTestBase {
 
         JsonObject msg = new JsonObjectBuilder().addProperty("a", 1).obj();
 
-        vantiq.publish(Vantiq.SystemResources.TOPICS.getResource(), "/foo/bar", msg, handler);
+        vantiq.publish(Vantiq.SystemResources.TOPICS.value(), "/foo/bar", msg, handler);
         waitForCompletion();
 
         // We first check the request
@@ -349,7 +349,7 @@ public class VantiqRequestTest extends VantiqTestBase {
 
         JsonObject msg = new JsonObjectBuilder().addProperty("a", 1).obj();
 
-        vantiq.publish(Vantiq.SystemResources.SOURCES.getResource(), "foo", msg, handler);
+        vantiq.publish(Vantiq.SystemResources.SOURCES.value(), "foo", msg, handler);
         waitForCompletion();
 
         // We first check the request
@@ -365,7 +365,7 @@ public class VantiqRequestTest extends VantiqTestBase {
     @Test
     public void testPreventPublishOnOtherTypes() throws Exception {
         try {
-            vantiq.publish(Vantiq.SystemResources.TYPES.getResource(), "MyType", null, handler);
+            vantiq.publish(Vantiq.SystemResources.TYPES.value(), "MyType", null, handler);
             fail("Should only allow publish on sources and topics");
         } catch(IllegalArgumentException ex) {
             assertThat(ex.getMessage(), is("Only 'sources' and 'topics' support publish"));

@@ -26,14 +26,14 @@ public class Vantiq {
         TYPES("types"),
         USERS("users");
 
-        private String resource;
+        private String value;
 
-        private SystemResources(String resource) {
-            this.resource = resource;
+        private SystemResources(String value) {
+            this.value = value;
         }
 
-        public String getResource() {
-            return this.resource;
+        public String value() {
+            return this.value;
         }
     }
 
@@ -324,8 +324,8 @@ public class Vantiq {
                         String id,
                         JsonObject payload,
                         ResponseHandler responseHandler) {
-        if(!SystemResources.SOURCES.getResource().equals(resource) &&
-           !SystemResources.TOPICS.getResource().equals(resource)) {
+        if(!SystemResources.SOURCES.value().equals(resource) &&
+           !SystemResources.TOPICS.value().equals(resource)) {
             throw new IllegalArgumentException("Only 'sources' and 'topics' support publish");
         }
 
