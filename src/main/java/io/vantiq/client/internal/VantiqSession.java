@@ -1,5 +1,6 @@
 package io.vantiq.client.internal;
 
+import com.google.common.io.BaseEncoding;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -9,8 +10,8 @@ import io.vantiq.client.ResponseHandler;
 import io.vantiq.client.VantiqError;
 import okhttp3.*;
 
-import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
@@ -118,6 +119,14 @@ public class VantiqSession {
     }
 
     /**
+     * Perform Base64 encoding.  Since Android has some limitations, we detect what's available
+     * and use that.
+     */
+    private String encode(String value) {
+        return BaseEncoding.base64().encode(value.getBytes());
+    }
+
+    /**
      * Authenticates onto the Vantiq server with the provided credentials.  After
      * this call completes, the credentials are not stored.
      *
@@ -126,8 +135,7 @@ public class VantiqSession {
      * @param responseHandler The response handler that is called upon completion.
      */
     public void authenticate(String username, String password, ResponseHandler responseHandler) {
-        String authValue = "Basic " +
-                DatatypeConverter.printBase64Binary((username + ":" + password).getBytes());
+        String authValue = "Basic " + encode(username + ":" + password);
 
         this.request(authValue, "GET", "authenticate", null, null, new CallbackAdapter(responseHandler) {
             @Override

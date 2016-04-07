@@ -20,36 +20,51 @@ public class BaseResponseHandler implements ResponseHandler {
 
     @Override
     public void onSuccess(Object body, Response response) {
-        // Check for count in header
-        String cntValue = response.header("X-Total-Count");
-        if(cntValue != null) {
-            try {
-                this.count = Integer.parseInt(cntValue);
-            } catch(NumberFormatException ex) {
-                /* If not parsable, then just ignore it */
+        try {
+            // Check for count in header
+            String cntValue = response.header("X-Total-Count");
+            if (cntValue != null) {
+                try {
+                    this.count = Integer.parseInt(cntValue);
+                } catch (NumberFormatException ex) {
+                    /* If not parsable, then just ignore it */
+                }
             }
+
+            // Extract content type
+            this.contentType = response.header("Content-Type");
+
+            // Extract HTTP status code
+            this.statusCode = response.code();
+
+            // Store the response body
+            this.body = body;
+        } finally {
+            // Call completion hook
+            this.completionHook(true);
         }
-
-        // Extract content type
-        this.contentType = response.header("Content-Type");
-
-        // Extract HTTP status code
-        this.statusCode = response.code();
-
-        // Store the response body
-        this.body = body;
     }
 
     @Override
     public void onError(List<VantiqError> errors, Response response) {
         this.statusCode = response.code();
         this.errors = errors;
+        this.completionHook(false);
     }
 
     @Override
     public void onFailure(Throwable exception) {
         this.exception = exception;
+        this.completionHook(false);
     }
+
+    /**
+     * Method that is called when the response has completed either
+     * successfully, in error, or through an exception.
+     *
+     * @param success true if onSuccess was called, otherwise, false
+     */
+    public void completionHook(boolean success) {}
 
     /**
      * Returns true if at least one error was returned from the server
