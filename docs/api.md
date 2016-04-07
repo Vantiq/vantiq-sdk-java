@@ -795,6 +795,9 @@ vantiq.query("sum", params, new BaseResponseHandler() {
 The `ResponseHandler` interface provides the API that are called when the Vantiq SDK methods complete either
 successfully or in error.
 
+The SDK provides the concrete class `BaseResponseHandler` that implements the `ResponseHandler` interface and provides
+helper methods.
+
 ### Methods
 
 Name | Description
@@ -802,6 +805,134 @@ Name | Description
 onSuccess | Called when the method call returns successfully (i.e. HTTP status codes 2xx).  The response body is parsed and provided in the `body` argument.
 onError   | Called when the server returns one or more errors (i.e. HTTP status codes 4xx/5xx).
 onFailure | Called when the client has an exception during processing.
+
+### Android Usage
+
+On Android, the `BaseResponseHandler` can be used within an `AsyncTask` to support Vantiq server requests while still
+allowing the UI to be responsive.  Below is an example of how to create a base async task class (from the 
+Android example).
+
+```java
+package io.vantiq.examplesdkclient;
+
+import android.os.AsyncTask;
+
+import io.vantiq.client.BaseResponseHandler;
+import io.vantiq.client.Vantiq;
+
+/**
+ * Abstract AsyncTask class that provides an easy mechanism to issue requests
+ * to the Vantiq server.  Like other async tasks, this should only be used once.
+ */
+public abstract class VantiqAsyncTask<Params,Progress,Result> extends AsyncTask<Params,Progress,Result> {
+
+    private Vantiq vantiq;
+    private BaseResponseHandler handler;
+    private boolean done = false;
+
+    public VantiqAsyncTask(Vantiq vantiq) {
+        this.vantiq = vantiq;
+
+        // Provide the response handler that simply indicates when the response has finished
+        this.handler = new BaseResponseHandler() {
+            @Override public void completionHook(boolean success) {
+                VantiqAsyncTask.this.done = true;
+            }
+        };
+    }
+
+    /**
+     * Abstract method that must be overridden by subclasses to issue a Vantiq request.
+     * @param handler The response handler
+     */
+    abstract protected void doRequest(Vantiq vantiq, BaseResponseHandler handler);
+
+    /**
+     * Abstract method that must be overridden by subclasses to return the result.
+     * @param handler The response handler
+     * @return The response of this async task
+     */
+    abstract protected Result prepareResult(BaseResponseHandler handler);
+
+    @Override
+    protected final Result doInBackground(Params... params) {
+
+        // Issue request to the server
+        doRequest(this.vantiq, this.handler);
+
+        // Wait for the request to be completed
+        try {
+            while (!this.done) {
+                Thread.sleep(100);
+            }
+        } catch(InterruptedException ex) {
+            /* If interrupted, then just drop out */
+        }
+
+        return prepareResult(this.handler);
+    }
+
+}
+```
+
+This async task makes it easy to use the Vantiq SDK API.  Here is an example of running 
+a select operation.
+
+```java
+// Trigger select query
+this.selectTask = new SelectTypesTask(vantiq);
+this.selectTask.execute((Void) null);
+```
+
+Using the following `SelectTypesTask`.
+
+```java
+/**
+ * Async task to perform a select to return all available types from the Vantiq server.
+ */
+public class SelectTypesTask extends VantiqAsyncTask<Void, Void, List<Map<String,String>>> {
+
+    SelectTypesTask(Vantiq vantiq) {
+        super(vantiq);
+    }
+
+    @Override
+    protected void doRequest(Vantiq vantiq, BaseResponseHandler handler) {
+        vantiq.select(Vantiq.SystemResources.TYPES.value(),
+                      Arrays.asList("name", "namespace"),
+                      null,
+                      new SortSpec("name", /*descending=*/ false),
+                      handler);
+    }
+
+    @Override
+    protected List<Map<String,String>> prepareResult(BaseResponseHandler handler) {
+        List<Map<String,String>> result = Lists.newArrayList();
+
+        // At this point, we should have a result, so we pull out the response
+        if(handler.getBody() != null) {
+            for(JsonObject obj : handler.getBodyAsList()) {
+                Map<String,String> entry = Maps.newHashMap();
+                entry.put("name", obj.get("name").getAsString());
+                entry.put("namespace", obj.get("namespace").getAsString());
+                result.add(entry);
+            }
+        } else if(handler.hasErrors()) {
+            MainActivity.this.onServerError(handler.getErrors().toString());
+        } else if(handler.hasException()) {
+            MainActivity.this.onServerError(handler.getException().getMessage());
+        }
+
+        return result;
+    }
+
+    @Override
+    protected void onPostExecute(final List<Map<String,String>> result) {
+        MainActivity.this.selectTask = null;
+        onServerCompletion(result);
+    }
+}
+```
 
 # <a id="VantiqError"></a> VantiqError
 
