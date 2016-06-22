@@ -20,7 +20,16 @@ android {
 }
 
 repositories {
-    // Add repository for Vantiq SDK
+    //
+    // For local development of the SDK, pull from the local Maven repo.
+    // To publish, on the Vantiq SDK side, use "gradle install" to publish
+    // to the local Maven repo.
+    //
+    mavenLocal()
+
+    //
+    // Pull the Vantiq SDK from the official Maven repo
+    //
     maven {
         url "https://dl.bintray.com/vantiq/maven"
     }
@@ -33,7 +42,7 @@ dependencies {
     compile 'com.android.support:design:23.2.1'
 
     // Add dependency for Vantiq SDK
-    compile 'io.vantiq:vantiq-sdk:1.0.1'
+    compile 'io.vantiq:vantiq-sdk:1.0.3'
 
     testCompile 'junit:junit:4.12'
 }
