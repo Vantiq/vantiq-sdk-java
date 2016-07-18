@@ -42,7 +42,7 @@ dependencies {
     compile 'com.android.support:design:23.2.1'
 
     // Add dependency for Vantiq SDK
-    compile 'io.vantiq:vantiq-sdk:1.0.3'
+    compile 'io.vantiq:vantiq-sdk:1.0.4'
 
     testCompile 'junit:junit:4.12'
 }

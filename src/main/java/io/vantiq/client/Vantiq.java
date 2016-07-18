@@ -19,6 +19,7 @@ public class Vantiq {
         NODES("nodes"),
         PROCEDURES("procedures"),
         PROFILES("profiles"),
+        ANALYTICSMODEL("analyticsmodel"),
         RULES("rules"),
         SCALARS("scalars"),
         SOURCES("sources"),
