@@ -422,6 +422,34 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Missing procedure", handler.getStatusCode(), is(404));
     }
 
+
+    @Test
+    public void testEvaluateModel() throws Exception {
+        server.enqueue(new MockResponse()
+                                .setHeader("Content-Type", "application/json")
+                                .setResponseCode(200)
+                                .setBody(new JsonObjectBuilder()
+                                    .addProperty("total", 3)
+                                    .json()));
+
+        JsonObject params = new JsonObjectBuilder()
+                .addProperty("arg1", 1)
+                .addProperty("arg2", 2)
+                .obj();
+
+        vantiq.evaluate("testModel", params, handler);
+        waitForCompletion();
+
+        // We first check the request
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/analyticsmodels/testModel"));
+
+        // Check response
+        assertTrue("Successful response", handler.success);
+        assertThat("Valid body", handler.getBodyAsJsonObject().get("total").getAsInt(), is(3));
+    }
+
     @Test
     public void testQuerySource() throws Exception {
         server.enqueue(new MockResponse()

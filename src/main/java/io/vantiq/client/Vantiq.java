@@ -14,6 +14,7 @@ import java.util.*;
 public class Vantiq {
 
     public enum SystemResources {
+        ANALYTICS_MODELS("analyticsmodels"),
         DOCUMENTS("documents"),
         NAMESPACES("namespaces"),
         NODES("nodes"),
@@ -387,10 +388,27 @@ public class Vantiq {
     public void execute(String procedure,
                         Object params,
                         ResponseHandler responseHandler) {
-        String path = "/resources/procedures/" + procedure;
+        String path = "/resources/" + SystemResources.PROCEDURES.value() + "/" + procedure;
         this.session.post(path, null, gson.toJson(params), responseHandler);
     }
 
+
+    /**
+     * Evaluates a specific analytics model.  An evaluation operation is synchronous 
+     * (i.e. request-response).  The response is a JsonObject with the result of the model
+     * evaluation.
+     *
+     * @param modelName The name of the analytics model to evaluate.
+     * @param params The arguments for the model.  The parameters are passed as a JSON element
+     *               containing the required inputs as defined in the analytics model.
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void evaluate(String modelName,
+                         Object params,
+                         ResponseHandler responseHandler) {
+        String path = "/resources/" + SystemResources.ANALYTICS_MODELS.value() + "/" + modelName;
+        this.session.post(path, null, gson.toJson(params), responseHandler);
+    }
     /**
      * Performs a query operation on the specified source.  A query operation is synchronous (i.e. request-response).
      * The response is a JsonObject with the result of the source query operation.

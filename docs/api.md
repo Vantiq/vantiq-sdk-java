@@ -19,6 +19,7 @@ The available system resources are defined in the `Vantiq.SystemResources` enum 
 
 Enum Name  | Resource Name  | Type Name    | Description
 ---------- | -------------- | ------------ | -----------
+ANALYTICS_MODELS | analyticsmodels | ArsAnalyticsModel | Analytics Models defined in the Vantiq system
 DOCUMENTS  | documents      | ArsDocument  | Unstructured documents stored in the Vantiq system
 NAMESPACES | namespaces     | ArsNamespace | Namespaces defined in the Vantiq system
 NODES      | nodes          | ArsPeerNode  | Node defined in the Vantiq system to support federation
@@ -48,6 +49,7 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
     * [deleteOne](#Vantiq-deleteOne)
     * [publish](#Vantiq-publish)
     * [execute](#Vantiq-execute)
+    * [evaluate](#Vantiq-evaluate)
     * [query](#Vantiq-query)
 
 ### ResponseHandler
@@ -732,6 +734,55 @@ vantiq.execute("sum", params, new BaseResponseHandler() {
     @Override public void onSuccess(Object body, Response response) {
         super.onSuccess(body, response);
         System.out.println("The sum of 1 + 2 = " + this.getBodyAsJsonObject().get("total"));
+    }
+
+});
+```
+
+## <a id="vantiq-evaluate"></a> Vantiq.evaluate
+
+The `evaluate` method evaluates an analytics model on the Vantiq server.  Analytics models
+expect input data as parameters and produce a result.
+
+### Signature
+
+```java
+void vantiq.evaluate(String modelName, Object params, ResponseHandler response)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+modelName | String | Yes | The analytics model to execute
+params | Object | No | An object that holds the parameters. This object is converted to JSON using Gson.
+handler | ResponseHandler | Yes | Listener that is called upon success or failure
+
+The input data in the `params` field should be structured in the form defined by the 
+analytics model.  In general, it should be a JSON object with a structured defined as the
+input record type in the model.
+
+### Returns
+
+The `evaluate` method calls `handler.onSuccess` with a `JsonObject` or `JsonPrimitive` object
+containing the result of the model.  The exact form is defined by the output record type in the model.
+Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+
+### Example
+
+Evaluates an `Score` analytics model that takes `arg1` and `arg2` arguments and returns the score in a
+`JsonObject`.
+
+```java
+JsonObject params = new JsonObject();
+params.addProperty("arg1", "xxx");
+params.addProperty("arg1", "yyy");
+
+vantiq.evaluate("Score", params, new BaseResponseHandler() {
+
+    @Override public void onSuccess(Object body, Response response) {
+        super.onSuccess(body, response);
+        System.out.println("The model score is = " + this.getBodyAsJsonObject().get("score"));
     }
 
 });
