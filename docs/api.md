@@ -38,21 +38,21 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
 
 ### API
 
-* [io.vantiq.client.Vantiq](#Vantiq)
-    * [authenticate](#Vantiq-authenticate)
-    * [setAccessToken](#Vantiq-setAccessToken)
-    * [select](#Vantiq-select)
-    * [selectOne](#Vantiq-selectOne)
-    * [count](#Vantiq-count)
-    * [insert](#Vantiq-insert)
-    * [update](#Vantiq-update)
-    * [upsert](#Vantiq-upsert)
-    * [delete](#Vantiq-delete)
-    * [deleteOne](#Vantiq-deleteOne)
-    * [publish](#Vantiq-publish)
-    * [execute](#Vantiq-execute)
-    * [evaluate](#Vantiq-evaluate)
-    * [query](#Vantiq-query)
+* [io.vantiq.client.Vantiq](#user-content-Vantiq)
+    * [authenticate](#user-content-Vantiq-authenticate)
+    * [setAccessToken](#user-content-Vantiq-setAccessToken)
+    * [select](#user-content-Vantiq-select)
+    * [selectOne](#user-content-Vantiq-selectOne)
+    * [count](#user-content-Vantiq-count)
+    * [insert](#user-content-Vantiq-insert)
+    * [update](#user-content-Vantiq-update)
+    * [upsert](#user-content-Vantiq-upsert)
+    * [delete](#user-content-Vantiq-delete)
+    * [deleteOne](#user-content-Vantiq-deleteOne)
+    * [publish](#user-content-Vantiq-publish)
+    * [execute](#user-content-Vantiq-execute)
+    * [evaluate](#user-content-Vantiq-evaluate)
+    * [query](#user-content-Vantiq-query)
 
 All Vantiq SDK methods have both an asynchronous form and a
 synchronous form.  The asynchronous form requires a response
@@ -74,8 +74,8 @@ VantiqResponse response = vantiq.method(arg1, arg2, ...);
 
 ### Responses
 
-* [VantiqResponse](#VantiqResponse)
-* [ResponseHandler](#ResponseHandler)
+* [VantiqResponse](#user-content-VantiqResponse)
+* [ResponseHandler](#user-content-ResponseHandler)
 
 ### Error
 
