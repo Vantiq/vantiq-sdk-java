@@ -5,9 +5,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.squareup.okhttp.mockwebserver.MockWebServer;
+import okio.Buffer;
 import org.junit.After;
 import org.junit.Before;
 
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -22,14 +24,26 @@ public class VantiqTestBase {
 
     protected MockWebServer server;
 
-    protected final UnitTestResponseHandler handler = new UnitTestResponseHandler();
+    protected final UnitTestResponseHandler handler;
     protected final Gson gson = new Gson();
+
+    protected VantiqTestBase() {
+        this(true);
+    }
+
+    protected VantiqTestBase(boolean useHandler) {
+        if(useHandler) {
+            handler = new UnitTestResponseHandler();
+        } else {
+            handler = null;
+        }
+    }
 
     @Before
     public void setUp() throws Exception {
         server = new MockWebServer();
         server.start();
-        handler.reset();
+        if(handler != null) handler.reset();
     }
 
     @After
@@ -94,6 +108,12 @@ public class VantiqTestBase {
             return gson.toJson(this.obj);
         }
 
+    }
+
+    public String readAll(Buffer body) throws Exception {
+        ByteArrayOutputStream os = new ByteArrayOutputStream((int) body.size());
+        body.copyTo(os);
+        return new String(os.toByteArray());
     }
 
 }

@@ -1,0 +1,15 @@
+{
+  "name": "TestModel",
+  "input": {
+    "name": "InputType",
+    "type": "record",
+    "fields": [
+      { "name": "value", "type": "double" }
+    ]
+  },
+  "output": "double",
+  "action": {
+    "m.sqrt": { "attr": "input", "path": [[ "value" ]]
+    }
+  }
+}

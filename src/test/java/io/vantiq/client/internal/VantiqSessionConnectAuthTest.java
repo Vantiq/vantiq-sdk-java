@@ -3,6 +3,7 @@ package io.vantiq.client.internal;
 import com.squareup.okhttp.mockwebserver.MockResponse;
 import com.squareup.okhttp.mockwebserver.RecordedRequest;
 import io.vantiq.client.VantiqError;
+import io.vantiq.client.VantiqResponse;
 import io.vantiq.client.VantiqTestBase;
 import io.vantiq.client.internal.VantiqSession;
 import org.junit.After;
@@ -140,4 +141,37 @@ public class VantiqSessionConnectAuthTest extends VantiqTestBase {
         }
     }
 
-}
+    @Test
+    public void testAuthenticateSync() throws Exception {
+        server.enqueue(new MockResponse()
+                           .setResponseCode(200)
+                           .setHeader("Content-Type", "application/json")
+                           .setBody(new JsonObjectBuilder()
+                                        .addProperty("accessToken", "abc123")
+                                        .json()));
+
+        session.authenticate(USERNAME, PASSWORD, null);
+        assertTrue("Session authenticated", session.isAuthenticated());
+        assertThat("Valid access token",    session.getAccessToken(), is("abc123"));
+    }
+
+    @Test
+    public void testHandleAuthenticationFailureSync() throws Exception {
+        server.enqueue(new MockResponse()
+                           .setResponseCode(401)
+                           .setHeader("Content-Type", "application/json")
+                           .setBody(toJson(Collections.singletonList(new VantiqError(
+                               "io.vantiq.server.error",
+                               "Unauthorized",
+                               Collections.emptyList()
+                           )))));
+
+        VantiqResponse response = session.authenticate("bad", "user", null);
+
+        assertTrue("Should not be success",     response.hasErrors());
+        assertTrue("Should be error",           !response.hasException());
+        assertTrue("Session not authenticated", !session.isAuthenticated());
+        assertThat("Should be no access token", session.getAccessToken(), is(nullValue()));
+        assertThat("HTTP Status", response.getStatusCode(),              is(401));
+        assertThat("Error code",  response.getErrors().get(0).getCode(), is("io.vantiq.server.error"));
+    }}

@@ -1,11 +1,11 @@
 package io.vantiq.client;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.squareup.okhttp.HttpUrl;
 import com.squareup.okhttp.mockwebserver.MockResponse;
 import com.squareup.okhttp.mockwebserver.RecordedRequest;
 import okio.Buffer;
-import okhttp3.Response;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,11 +19,16 @@ import static org.junit.Assert.*;
 
 /**
  * Mocked unit tests that exercise the request and
- * response processing support for Vantiq.
+ * response processing support for Vantiq.  These tests
+ * use the synchronous form for the methods.
  */
-public class VantiqRequestTest extends VantiqTestBase {
+public class VantiqRequestSyncTest extends VantiqTestBase {
 
     private Vantiq vantiq;
+
+    public VantiqRequestSyncTest() {
+        super(false);
+    }
 
     @Before
     public void setUpVantiq() throws Exception {
@@ -38,23 +43,14 @@ public class VantiqRequestTest extends VantiqTestBase {
                                                 .json()));
 
         // Run the authentication request
-        vantiq.authenticate("joe", "no-one-will-guess", handler);
+        vantiq.authenticate("joe", "no-one-will-guess");
+        assertThat("Authenticated", vantiq.isAuthenticated(), is(true));
         server.takeRequest();
-        waitForCompletion();
-
-        // Reset handler to setup for next call
-        handler.reset();
     }
 
     @After
     public void tearDownVantiq() {
         vantiq = null;
-    }
-
-    @Test
-    public void testSystemResources() {
-        // Simple test to ensure that system resources are defined
-        assertThat("SystemResources", Vantiq.SystemResources.TYPES.value(), is("types"));
     }
 
     @Test
@@ -67,10 +63,9 @@ public class VantiqRequestTest extends VantiqTestBase {
                                                 .add(new JsonObjectBuilder().addProperty("a", 2).addProperty("b", "jenga").obj())
                                                 .json()));
 
-        vantiq.select("MyType", null, null, null, handler);
-        waitForCompletion();
-        assertTrue("Successful response", handler.success);
-        assertThat("Valid body", handler.getBodyAsList().get(0).get("a").getAsInt(), is(1));
+        VantiqResponse response = vantiq.select("MyType", null, null, null);
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body", ((List<JsonObject>) response.getBody()).get(0).get("a").getAsInt(), is(1));
     }
 
     @Test
@@ -86,8 +81,7 @@ public class VantiqRequestTest extends VantiqTestBase {
         JsonObject    where = new JsonObjectBuilder().addProperty("a", 1).obj();
         SortSpec       sort = new SortSpec("a", true);
 
-        vantiq.select("MyType", props, where, sort, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.select("MyType", props, where, sort);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -97,9 +91,9 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid sort",  url.queryParameter("sort"),  is("{\"a\":-1}"));
 
         // Check the response
-        assertTrue("Successful response", handler.success);
-        assertThat("Valid body", handler.getBodyAsList().get(0).get("a").getAsInt(), is(1));
-        assertThat("Valid body", handler.getBodyAsList().get(0).get("b").getAsString(), is("bingo"));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body", ((List<JsonObject>) response.getBody()).get(0).get("a").getAsInt(), is(1));
+        assertThat("Valid body", ((List<JsonObject>) response.getBody()).get(0).get("b").getAsString(), is("bingo"));
     }
 
     @Test
@@ -112,17 +106,16 @@ public class VantiqRequestTest extends VantiqTestBase {
                                                 .addProperty("b", "bingo")
                                                 .json()));
 
-        vantiq.selectOne("MyType", "abc123", handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.selectOne("MyType", "abc123");
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
         assertThat("Valid path", request.getPath(), is("/api/v1/resources/MyType/abc123"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("a").getAsInt(), is(1));
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("b").getAsString(), is("bingo"));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("a").getAsInt(), is(1));
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("b").getAsString(), is("bingo"));
     }
 
     @Test
@@ -136,8 +129,7 @@ public class VantiqRequestTest extends VantiqTestBase {
                                                 .add(new JsonObjectBuilder().addProperty("a", 2).addProperty("b", "jenga").obj())
                                                 .json()));
 
-        vantiq.count("MyType", null, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.count("MyType", null);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -146,8 +138,8 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Props",           url.queryParameter("props"), is("[\"_id\"]"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Count", handler.getBodyAsInt(), is(2));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Count", (Integer) response.getBody(), is(2));
     }
 
     @Test
@@ -162,8 +154,7 @@ public class VantiqRequestTest extends VantiqTestBase {
 
         JsonObject where = new JsonObjectBuilder().addProperty("a", 1).obj();
 
-        vantiq.count("MyType", where, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.count("MyType", where);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -172,8 +163,8 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Props",           url.queryParameter("props"), is("[\"_id\"]"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Count", handler.getBodyAsInt(), is(1));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Count", (Integer) response.getBody(), is(1));
     }
 
     @Test
@@ -191,8 +182,7 @@ public class VantiqRequestTest extends VantiqTestBase {
                             .addProperty("b", "foo")
                             .obj();
 
-        vantiq.insert("MyType", obj, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.insert("MyType", obj);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -203,9 +193,9 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid request body", reqObj.get("b").getAsString(), is("foo"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("a").getAsInt(), is(1));
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("b").getAsString(), is("foo"));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("a").getAsInt(), is(1));
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("b").getAsString(), is("foo"));
     }
 
     @Test
@@ -224,8 +214,7 @@ public class VantiqRequestTest extends VantiqTestBase {
                 .obj();
         String key = "12345";
 
-        vantiq.update("MyType", key, obj, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.update("MyType", key, obj);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -236,9 +225,9 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid request body", reqObj.get("b").getAsString(), is("foo"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("a").getAsInt(), is(1));
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("b").getAsString(), is("foo"));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("a").getAsInt(), is(1));
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("b").getAsString(), is("foo"));
     }
 
     @Test
@@ -256,8 +245,7 @@ public class VantiqRequestTest extends VantiqTestBase {
                 .addProperty("b", "foo")
                 .obj();
 
-        vantiq.upsert("MyType", obj, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.upsert("MyType", obj);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -270,9 +258,9 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid request body", reqObj.get("b").getAsString(), is("foo"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("a").getAsInt(), is(1));
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("b").getAsString(), is("foo"));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("a").getAsInt(), is(1));
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("b").getAsString(), is("foo"));
     }
 
     @Test
@@ -284,8 +272,7 @@ public class VantiqRequestTest extends VantiqTestBase {
 
         JsonObject where = new JsonObjectBuilder().addProperty("a", 1).obj();
 
-        vantiq.delete("MyType", where, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.delete("MyType", where);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -294,8 +281,8 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Count parameter", url.queryParameter("count"), is("true"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Result", handler.getBodyAsBoolean(), is(true));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Result", ((Boolean) response.getBody()), is(true));
     }
 
     @Test
@@ -303,8 +290,7 @@ public class VantiqRequestTest extends VantiqTestBase {
         server.enqueue(new MockResponse()
                                .setResponseCode(204));
 
-        vantiq.deleteOne("MyType", "12345", handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.deleteOne("MyType", "12345");
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -312,8 +298,8 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid path",      url.encodedPath(),           is("/api/v1/resources/MyType/12345"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Result", handler.getBodyAsBoolean(), is(true));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Result", ((Boolean) response.getBody()), is(true));
     }
 
     @Test
@@ -323,8 +309,7 @@ public class VantiqRequestTest extends VantiqTestBase {
 
         JsonObject msg = new JsonObjectBuilder().addProperty("a", 1).obj();
 
-        vantiq.publish(Vantiq.SystemResources.TOPICS.value(), "/foo/bar", msg, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.publish(Vantiq.SystemResources.TOPICS.value(), "/foo/bar", msg);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -332,8 +317,8 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/topics//foo/bar"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Result", handler.getBodyAsBoolean(), is(true));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Result", ((Boolean) response.getBody()), is(true));
     }
 
     @Test
@@ -343,8 +328,7 @@ public class VantiqRequestTest extends VantiqTestBase {
 
         JsonObject msg = new JsonObjectBuilder().addProperty("a", 1).obj();
 
-        vantiq.publish(Vantiq.SystemResources.SOURCES.value(), "foo", msg, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.publish(Vantiq.SystemResources.SOURCES.value(), "foo", msg);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -352,14 +336,14 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/sources/foo"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Result", handler.getBodyAsBoolean(), is(true));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Result", ((Boolean) response.getBody()), is(true));
     }
 
     @Test
     public void testPreventPublishOnOtherTypes() throws Exception {
         try {
-            vantiq.publish(Vantiq.SystemResources.TYPES.value(), "MyType", null, handler);
+            vantiq.publish(Vantiq.SystemResources.TYPES.value(), "MyType", null);
             fail("Should only allow publish on sources and topics");
         } catch(IllegalArgumentException ex) {
             assertThat(ex.getMessage(), is("Only 'sources' and 'topics' support publish"));
@@ -380,8 +364,7 @@ public class VantiqRequestTest extends VantiqTestBase {
                 .addProperty("arg2", 2)
                 .obj();
 
-        vantiq.execute("adder", params, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.execute("adder", params);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -389,8 +372,8 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/procedures/adder"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("total").getAsInt(), is(3));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("total").getAsInt(), is(3));
     }
 
     @Test
@@ -403,8 +386,7 @@ public class VantiqRequestTest extends VantiqTestBase {
                 .addProperty("arg2", 2)
                 .obj();
 
-        vantiq.execute("whoops", params, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.execute("whoops", params);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -412,8 +394,8 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/procedures/whoops"));
 
         // Check response
-        assertTrue("Error response",    handler.error);
-        assertThat("Missing procedure", handler.getStatusCode(), is(404));
+        assertTrue("Error response",    !response.isSuccess());
+        assertThat("Missing procedure", response.getStatusCode(), is(404));
     }
 
 
@@ -431,8 +413,7 @@ public class VantiqRequestTest extends VantiqTestBase {
                 .addProperty("arg2", 2)
                 .obj();
 
-        vantiq.evaluate("testModel", params, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.evaluate("testModel", params);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -440,8 +421,8 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/analyticsmodels/testModel"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("total").getAsInt(), is(3));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("total").getAsInt(), is(3));
     }
 
     @Test
@@ -458,8 +439,7 @@ public class VantiqRequestTest extends VantiqTestBase {
                 .addProperty("arg2", 2)
                 .obj();
 
-        vantiq.query("adder", params, handler);
-        waitForCompletion();
+        VantiqResponse response = vantiq.query("adder", params);
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
@@ -467,7 +447,7 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/sources/adder/query"));
 
         // Check response
-        assertTrue("Successful response", handler.success);
-        assertThat("Valid body", handler.getBodyAsJsonObject().get("total").getAsInt(), is(3));
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("total").getAsInt(), is(3));
     }
 }

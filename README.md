@@ -21,7 +21,7 @@ In Gradle,
     }
     
     dependencies {
-        compile 'io.vantiq:vantiq-sdk:1.0.4'
+        compile 'io.vantiq:vantiq-sdk:1.0.6'
     }
 
 In Maven,
@@ -37,7 +37,7 @@ In Maven,
         <dependency>
             <groupId>io.vantiq</groupId>
             <artifactId>vantiq-sdk</artifactId>
-            <version>1.0.4</version>
+            <version>1.0.6</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>    
@@ -69,7 +69,7 @@ The `username` and `password` are the same credentials used to log into the syst
 
 The `handler` is an instance of `io.vantiq.ResponseHandler` that needs to be implemented by the caller and defines methods, such as `onSuccess` and `onError` that are called during the method processing.  `BaseResponseHandler` provides an implementation of `ResponseHandler` that should be overridden to provide desired behavior.
 
-Now, you are able to perform any SDK calls to the Vantiq server.  For example, the following prints out the list of types that have been defined:
+Now, you are able to perform any SDK calls to the Vantiq server.  There are both synchronous and asynchronous forms of all the methods in the API.  For example, the following uses the asynchronous `select` to print out the list of types that have been defined:
 
 ```java
 vantiq.select(Vantiq.SystemResources.TYPES.value(), 
@@ -88,9 +88,35 @@ vantiq.select(Vantiq.SystemResources.TYPES.value(),
 );
 ```
 
+The following is the equivalent using the synchronous version:
+
+```java
+VantiqResponse response = vantiq.select(Vantiq.SystemResources.TYPES.value(), null, null, null);
+if(response.isSuccess()) {
+    for(JsonObject obj : (List<JsonObject>) response.getBody()) {
+        System.out.println(obj);
+    }
+}
+```
+
 ## Documentation
 
 For the full documentation on the SDK, see the [SDK API Reference](./docs/api.md).
+
+## Developers
+
+The unit tests are mocked so they can be executed without a Vantiq server and account.  The integration tests require a Vantiq account with the artifacts under `src/resources/intgTest` loaded.  These can be loaded using the Vantiq CLI using the import command, e.g.,
+
+```
+% cd src/resources/intgTest
+% vantiq -s <profile> import
+```
+
+To execute the integration tests, the following Java properties must be set:
+
+- server: The URL for the Vantiq server (e.g. `https://dev.vantiq.com`)
+- username: The username on the Vantiq server
+- password: The password on the Vantiq server
 
 ## Copyright and License
 

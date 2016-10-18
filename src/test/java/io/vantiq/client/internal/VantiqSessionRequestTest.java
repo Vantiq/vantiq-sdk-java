@@ -1,6 +1,8 @@
 package io.vantiq.client.internal;
 
+import com.google.gson.JsonObject;
 import com.squareup.okhttp.mockwebserver.MockResponse;
+import io.vantiq.client.VantiqResponse;
 import io.vantiq.client.VantiqTestBase;
 import io.vantiq.client.internal.VantiqSession;
 import org.junit.After;
@@ -70,7 +72,7 @@ public class VantiqSessionRequestTest extends VantiqTestBase {
         session.get("/resources/types", null, handler);
         waitForCompletion();
         assertTrue("Successful response", handler.success);
-        assertThat("Empty body", handler.getBodyAsString(), is(""));
+        assertThat("Empty bytes body", ((byte[]) handler.getBody()).length, is(0));
     }
 
     @Test
@@ -86,4 +88,40 @@ public class VantiqSessionRequestTest extends VantiqTestBase {
         assertThat("Plain text body", handler.getBodyAsString(), is("Hello!"));
     }
 
+    @Test
+    public void testHandleJSONResponseSync() throws Exception {
+        server.enqueue(new MockResponse()
+                           .setResponseCode(200)
+                           .setHeader("Content-Type", "application/json")
+                           .setBody(new JsonObjectBuilder()
+                                        .addProperty("a", 1.2)
+                                        .addProperty("b", 2.4)
+                                        .json()));
+
+        VantiqResponse response = session.get("/resources/types", null, null);
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body", ((JsonObject) response.getBody()).get("a").getAsDouble(), is(1.2));
+    }
+
+    @Test
+    public void testHandleEmptyResponseSync() throws Exception {
+        server.enqueue(new MockResponse()
+                           .setResponseCode(200));
+
+        VantiqResponse response = session.get("/resources/types", null, null);
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Empty bytes body", ((byte[]) response.getBody()).length, is(0));
+    }
+
+    @Test
+    public void testHandleNonJSONResponseSync() throws Exception {
+        server.enqueue(new MockResponse()
+                           .setHeader("Content-Type", "text/plain")
+                           .setResponseCode(200)
+                           .setBody("Hello!"));
+
+        VantiqResponse response = session.get("/resources/types", null, null);
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Plain text body", (String) response.getBody(), is("Hello!"));
+    }
 }

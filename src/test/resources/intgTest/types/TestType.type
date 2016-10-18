@@ -1,0 +1,11 @@
+{
+    "name": "TestType",
+    "properties": {
+        "id": { "type": "String"   },
+        "ts": { "type": "DateTime" },
+        "x":  { "type": "Real"     },
+        "k":  { "type": "Integer"  },
+        "o":  { "type": "Object"   }
+    },
+    "naturalKey": [ "id" ]
+}

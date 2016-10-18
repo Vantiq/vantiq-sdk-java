@@ -11,51 +11,40 @@ import java.util.List;
  */
 public class BaseResponseHandler implements ResponseHandler {
 
-    private int count = -1;
-    private int statusCode;
-    private String contentType;
-    private Object body;
-    private Throwable exception;
-    private List<VantiqError> errors;
+    private VantiqResponse response;
 
     @Override
     public void onSuccess(Object body, Response response) {
         try {
-            // Check for count in header
-            String cntValue = response.header("X-Total-Count");
-            if (cntValue != null) {
-                try {
-                    this.count = Integer.parseInt(cntValue);
-                } catch (NumberFormatException ex) {
-                    /* If not parsable, then just ignore it */
-                }
-            }
-
-            // Extract content type
-            this.contentType = response.header("Content-Type");
-
-            // Extract HTTP status code
-            this.statusCode = response.code();
-
-            // Store the response body
-            this.body = body;
+            this.response = new VantiqResponse(body, response);
         } finally {
-            // Call completion hook
             this.completionHook(true);
         }
     }
 
     @Override
     public void onError(List<VantiqError> errors, Response response) {
-        this.statusCode = response.code();
-        this.errors = errors;
-        this.completionHook(false);
+        try {
+            this.response = new VantiqResponse(errors, response);
+        } finally {
+            this.completionHook(false);
+        }
     }
 
     @Override
     public void onFailure(Throwable exception) {
-        this.exception = exception;
-        this.completionHook(false);
+        try {
+            this.response = new VantiqResponse(exception);
+        } finally {
+            this.completionHook(false);
+        }
+    }
+
+    /**
+     * Returns the response
+     */
+    public VantiqResponse getResponse() {
+        return this.response;
     }
 
     /**
@@ -71,7 +60,7 @@ public class BaseResponseHandler implements ResponseHandler {
      * @return true if at least one error exists
      */
     public boolean hasErrors() {
-        return this.errors != null && this.errors.size() > 0;
+        return this.response != null && this.response.hasErrors();
     }
 
     /**
@@ -79,7 +68,7 @@ public class BaseResponseHandler implements ResponseHandler {
      * @return true if an exception was thrown
      */
     public boolean hasException() {
-        return this.exception != null;
+        return this.response != null && this.response.hasException();
     }
 
     /**
@@ -87,7 +76,7 @@ public class BaseResponseHandler implements ResponseHandler {
      * @return The exception that was thrown or null
      */
     public Throwable getException() {
-        return this.exception;
+        return this.response != null ? this.response.getException() : null;
     }
 
     /**
@@ -95,7 +84,7 @@ public class BaseResponseHandler implements ResponseHandler {
      * @return The errors returned from the Vantiq server or null
      */
     public List<VantiqError> getErrors() {
-        return this.errors;
+        return this.response != null ? this.response.getErrors() : null;
     }
 
     /**
@@ -104,7 +93,7 @@ public class BaseResponseHandler implements ResponseHandler {
      * @return The returned count or -1 if no count header was present.
      */
     public int getCount() {
-        return this.count;
+        return this.response != null ? this.response.getCount() : -1;
     }
 
     /**
@@ -113,7 +102,7 @@ public class BaseResponseHandler implements ResponseHandler {
      * @return The content type of the response
      */
     public String getContentType() {
-        return this.contentType;
+        return this.response != null ? this.response.getContentType() : null;
     }
 
     /**
@@ -121,7 +110,7 @@ public class BaseResponseHandler implements ResponseHandler {
      * @return The HTTP status code for the response
      */
     public int getStatusCode() {
-        return this.statusCode;
+        return this.response != null ? this.response.getStatusCode() : -1;
     }
 
     /**
@@ -130,7 +119,7 @@ public class BaseResponseHandler implements ResponseHandler {
      * @return The parsed response body
      */
     public Object getBody() {
-        return this.body;
+        return this.response != null ? this.response.getBody() : null;
     }
 
     /**
@@ -138,7 +127,8 @@ public class BaseResponseHandler implements ResponseHandler {
      * @return The parsed body as a JsonObject or null if not a JsonObject
      */
     public JsonObject getBodyAsJsonObject() {
-        return (this.body instanceof JsonObject ? (JsonObject) body : null);
+        Object body = getBody();
+        return (body instanceof JsonObject ? (JsonObject) body : null);
     }
 
     /**
@@ -147,7 +137,8 @@ public class BaseResponseHandler implements ResponseHandler {
      */
     @SuppressWarnings("unchecked")
     public List<JsonObject> getBodyAsList() {
-        return (this.body instanceof List ? (List<JsonObject>) body : null);
+        Object body = getBody();
+        return (body instanceof List ? (List<JsonObject>) body : null);
     }
 
     /**
@@ -155,22 +146,25 @@ public class BaseResponseHandler implements ResponseHandler {
      * @return The parsed body as a String or null if not a String
      */
     public String getBodyAsString() {
-        return (this.body instanceof String ? (String) body : null);
+        Object body = getBody();
+        return (body instanceof String ? (String) body : null);
     }
 
     /**
-     * Returns the body as an int or null if the body is not an int
-     * @return The parsed body as a int or null if not an int
+     * Returns the body as an int or 0 if the body is not an int
+     * @return The parsed body as a int or 0 if not an int
      */
     public int getBodyAsInt() {
-        return (this.body instanceof Integer ? (Integer) body : null);
+        Object body = getBody();
+        return (body instanceof Integer ? (Integer) body : 0);
     }
 
     /**
-     * Returns the body as a boolean or null if the body is not a boolean
-     * @return The parsed body as a boolean or null if not a boolean
+     * Returns the body as a boolean or false if the body is not a boolean
+     * @return The parsed body as a boolean or false if not a boolean
      */
     public boolean getBodyAsBoolean() {
-        return (this.body instanceof Boolean ? (Boolean) body : null);
+        Object body = getBody();
+        return (body instanceof Boolean ? (Boolean) body : false);
     }
 }

@@ -20,6 +20,7 @@ The available system resources are defined in the `Vantiq.SystemResources` enum 
 Enum Name  | Resource Name  | Type Name    | Description
 ---------- | -------------- | ------------ | -----------
 ANALYTICS_MODELS | analyticsmodels | ArsAnalyticsModel | Analytics Models defined in the Vantiq system
+CONFIGURATIONS | configurations | ArsRuleConfiguration | Configurations of Vantiq artifacts
 DOCUMENTS  | documents      | ArsDocument  | Unstructured documents stored in the Vantiq system
 NAMESPACES | namespaces     | ArsNamespace | Namespaces defined in the Vantiq system
 NODES      | nodes          | ArsPeerNode  | Node defined in the Vantiq system to support federation
@@ -39,6 +40,7 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
 
 * [io.vantiq.client.Vantiq](#Vantiq)
     * [authenticate](#Vantiq-authenticate)
+    * [setAccessToken](#Vantiq-setAccessToken)
     * [select](#Vantiq-select)
     * [selectOne](#Vantiq-selectOne)
     * [count](#Vantiq-count)
@@ -52,8 +54,27 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
     * [evaluate](#Vantiq-evaluate)
     * [query](#Vantiq-query)
 
-### ResponseHandler
+All Vantiq SDK methods have both an asynchronous form and a
+synchronous form.  The asynchronous form requires a response
+handler that is executed when the response from the Vantiq
+server arrives, 
 
+```java
+vantiq.method(arg1, arg2, ..., responseHandler);
+```
+
+The synchronous form blocks until the response from the 
+Vantiq server arrives and returns the response as the return
+value,
+
+```java
+VantiqResponse response = vantiq.method(arg1, arg2, ...);
+```
+
+
+### Responses
+
+* [VantiqResponse](#VantiqResponse)
 * [ResponseHandler](#ResponseHandler)
 
 ### Error
@@ -104,6 +125,8 @@ are not stored.
 
 ```java
 void vantiq.authenticate(String username, String password, ResponseHandler handler)
+
+VantiqResponse vantiq.authenticate(String username, String password)
 ```
 
 ### Parameters
@@ -116,8 +139,7 @@ handler | ResponseHandler | Yes | Listener that is called upon success or failur
 
 ### Returns
 
-The `authenticate` method calls `handler.onSuccess` with a Boolean body indicating if the authentication was successful.  Upon any failure, including invalid credentials, `handler.onError` is called.  In the case
-of invalid credentials, `handler.onError` is called and the HTTP status code is *401*.
+The `authenticate` method returns a Boolean body indicating if the authentication was successful.
 
 ### Example
 
@@ -137,6 +159,39 @@ vantiq.authenticate("joe@user", "my-secr3t-passw0rd!#!", new BaseResponseHandler
 });
 ```
 
+## <a id="vantiq-setAccessToken"></a> Vantiq.setAccessToken
+
+The `setAccessToken` method provides a means for explicitly
+setting an access token without the `authentication` method.
+The token may be a token previously retrieved through the
+`authenticate` method or a long-lived token issued by the
+Vantiq server.
+
+After setting the access token, the SDK assumes that the
+session has been authenticated and operations can be issued.
+
+### Signature
+
+```java
+void vantiq.setAccessToken(String accessToken)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+accessToken | String | Yes | A valid access token used to provide access to the Vantiq server
+
+### Returns
+
+N/A
+
+### Example
+
+```java
+vantiq.setAccessToken("KJ7J5D3Gy0nXf0dK08HZIlZJXBwc3CbgpzrBdKPhfYo=");
+```
+
 ## <a id="vantiq-select"></a> Vantiq.select
 
 The `select` method issues a query to select all matching records for a given 
@@ -150,6 +205,11 @@ void vantiq.select(String resource,
                    Object where, 
                    SortSpec sort, 
                    ResponseHandler handler)
+                   
+VantiqResponse vantiq.select(String resource, 
+                             List<String> props, 
+                             Object where, 
+                             SortSpec sort)
 ```
 
 ### Parameters
@@ -170,8 +230,7 @@ The `sort` is a `SortSpec` object that indicate the property to sort by and the 
 
 ### Returns
 
-The `select` method calls `handler.onSuccess` with a body of type `List<JsonObject>` providing the list of matching 
-records.  Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+The `select` method returns a body of type `List<JsonObject>` providing the list of matching records.
 
 ### Example
 
@@ -244,6 +303,8 @@ by the given identifier.
 
 ```java
 void vantiq.selectOne(String resouce, String id, ResponseHandler handler)
+
+VantiqResponse vantiq.selectOne(String resouce, String id)
 ```
 
 ### Parameters
@@ -256,11 +317,7 @@ handler | ResponseHandler | Yes | Listener that is called upon success or failur
 
 ### Returns
 
-The `selectOne` method calls `handler.onSuccess` with a body of type `JsonObject` providing the
-matching record.  If no matching record is found, then `handler.onError` is returned with an HTTP
-status code of *404*.
-
-Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+The `selectOne` method returns a body of type `JsonObject` providing the matching record.
 
 ### Example
 
@@ -299,6 +356,8 @@ number of records rather than returning the records themselves.
 
 ```java
 void vantiq.count(String resource, Object where, ResponseHandler handler)
+
+VantiqResponse vantiq.count(String resource, Object where)
 ```
 
 ### Parameters
@@ -313,10 +372,8 @@ The `where` is an object with supported operations defined in [API operations](h
 
 ### Returns
 
-The `count` method calls `handler.onSuccess` with a body of type `Integer` providing the
+The `count` method returns a body of type `Integer` providing the
 count of the matching records.
-
-Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
 
 ### Example
 
@@ -359,6 +416,8 @@ The `insert` method creates a new record of a given resource.
 
 ```java
 void vantiq.insert(String resource, Object object, ResponseHandler handler)
+
+VantiqResponse vantiq.insert(String resource, Object object)
 ```
 
 ### Parameters
@@ -371,9 +430,7 @@ handler | ResponseHandler | Yes | Listener that is called upon success or failur
 
 ### Returns
 
-The `insert` method calls `handler.onSuccess` with a `JsonObject` object containing the object just inserted.  
-
-Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+The `insert` method returns a `JsonObject` object containing the object just inserted.  
 
 ### Example
 
@@ -404,6 +461,8 @@ Any properties not specified are not changed in the underlying record.
 
 ```java
 void vantiq.update(String resource, String id, Object object, ResponseHandler handler)
+
+VantiqResponse vantiq.update(String resource, String id, Object object)
 ```
 
 ### Parameters
@@ -417,9 +476,7 @@ handler | ResponseHandler | Yes | Listener that is called upon success or failur
 
 ### Returns
 
-The `update` method calls `handler.onSuccess` with a `JsonObject` object containing the object just updated.  
-
-Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+The `update` method returns a `JsonObject` object containing the object just updated.  
 
 ### Example
 
@@ -451,6 +508,8 @@ natural keys defined on the resource.
 
 ```java
 void vantiq.upsert(String resource, Object object, ResponseHandler response)
+
+VantiqResponse vantiq.upsert(String resource, Object object)
 ```
 
 ### Parameters
@@ -463,7 +522,7 @@ handler | ResponseHandler | Yes | Listener that is called upon success or failur
 
 ### Returns
 
-The `upsert` method calls `handler.onSuccess` with a `JsonObject` object containing the object just inserted or created.  Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+The `upsert` method return a `JsonObject` object containing the object just inserted or created.
 
 ### Example
 
@@ -493,6 +552,8 @@ require a constraint indicating which records to remove.
 
 ```java
 void vantiq.delete(String resource, Object where, ResponseHandler handler)
+
+VantiqResponse vantiq.delete(String resource, Object where)
 ```
 
 ### Parameters
@@ -507,7 +568,7 @@ The `where` is an object with supported operations defined in [API operations](h
 
 ### Returns
 
-The `delete` method calls `handler.onSuccess` when the removal succeeded.  Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+The `delete` method returns a boolean indicating the removal succeeded.
 
 ### Example
 
@@ -553,6 +614,8 @@ The `deleteOne` method removes a single record specified by the given identifier
 
 ```java
 void vantiq.deleteOne(String resource, String id, ResponseHandler response)
+
+VantiqResponse vantiq.deleteOne(String resource, String id)
 ```
 
 ### Parameters
@@ -565,7 +628,7 @@ handler | ResponseHandler | Yes | Listener that is called upon success or failur
 
 ### Returns
 
-The `deleteOne` method calls `handler.onSuccess` when the removal succeeded.  Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+The `deleteOne` method returns a boolean indicating the removal succeeded.
 
 ### Example
 
@@ -613,6 +676,8 @@ publish operation on the source.
 
 ```java
 void vantiq.publish(String resource, String id, Object payload, ResponseHandler response)
+
+VantiqResponse vantiq.publish(String resource, String id, Object payload)
 ```
 
 ### Parameters
@@ -630,8 +695,7 @@ documentation in the [Vantiq API Documentation](https://dev.vantiq.com/docs/api/
 
 ### Returns
 
-Since the `publish` operation is an asynchronous action, a successful publish will result in the 
-`handler.onSuccess` call with a boolean value.  Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+Since the `publish` operation is a fire-and-forget action, a successful publish will result in a boolean value indicating the publish occurred.
 
 ### Example
 
@@ -684,6 +748,8 @@ take parameters (i.e. arguments) and produce a result.
 
 ```java
 void vantiq.execute(String procedure, Object params, ResponseHandler response)
+
+VantiqResponse vantiq.execute(String procedure, Object params)
 ```
 
 ### Parameters
@@ -700,8 +766,7 @@ are named.
 
 ### Returns
 
-The `execute` method calls `handler.onSuccess` with a `JsonObject` object containing the result of the procedure
-call.  Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+The `execute` method returns with a `JsonObject` object containing the result of the procedure call.
 
 ### Example
 
@@ -748,6 +813,8 @@ expect input data as parameters and produce a result.
 
 ```java
 void vantiq.evaluate(String modelName, Object params, ResponseHandler response)
+
+VantiqResponse vantiq.evaluate(String modelName, Object params)
 ```
 
 ### Parameters
@@ -764,9 +831,7 @@ input record type in the model.
 
 ### Returns
 
-The `evaluate` method calls `handler.onSuccess` with a `JsonObject` or `JsonPrimitive` object
-containing the result of the model.  The exact form is defined by the output record type in the model.
-Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+The `evaluate` method return with a `JsonObject` or `JsonPrimitive` object containing the result of the model.
 
 ### Example
 
@@ -797,6 +862,8 @@ take parameters (i.e. arguments) and produce a result.
 
 ```java
 void vantiq.query(String source, Object params, ResponseHandler handler)
+
+VantiqResponse vantiq.query(String source, Object params)
 ```
 
 ### Parameters
@@ -813,7 +880,7 @@ documentation in the [Vantiq API Documentation](https://dev.vantiq.com/docs/api/
 
 ### Returns
 
-The `query` method calls `handler.onSuccess` with a `JsonObject` object containing the returned value from the source.  Upon a server failure, the `handler.onError` is called.  Upon any client exception, the `handler.onFailure` is called.
+The `query` method returns with a `JsonObject` object containing the returned value from the source.
 
 ### Example
 
@@ -840,6 +907,26 @@ vantiq.query("sum", params, new BaseResponseHandler() {
 
 });
 ```
+
+# <a id="VantiqResponse"></a> VantiqResponse
+
+The `VantiqResponse` object holds the completion state of the
+Vantiq SDK method if the synchronous form is used.
+
+### Methods
+
+Name | Description
+---- | -----------
+getBody| Returns the parsed content of the response.  This is usually a JsonElement.
+getContentType| Returns the content type header value 
+getCount| If a count was requested, this returns the count value
+getErrors| Errors returned from the Vantiq server, if any
+getException| The exception thrown during processing, if any
+getResponse| The underlying `OkHttp3` response object
+getStatusCode| The HTTP response status code
+hasErrors| Indicates if there were errors from the Vantiq server
+hasException|Indicates if there was an exception during processing
+isSuccess| Indicates if the operation was successful
 
 # <a id="ResponseHandler"></a> ResponseHandler
 
