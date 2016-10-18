@@ -38,21 +38,21 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
 
 ### API
 
-* [io.vantiq.client.Vantiq](#user-content-Vantiq)
-    * [authenticate](#user-content-Vantiq-authenticate)
-    * [setAccessToken](#user-content-Vantiq-setAccessToken)
-    * [select](#user-content-Vantiq-select)
-    * [selectOne](#user-content-Vantiq-selectOne)
-    * [count](#user-content-Vantiq-count)
-    * [insert](#user-content-Vantiq-insert)
-    * [update](#user-content-Vantiq-update)
-    * [upsert](#user-content-Vantiq-upsert)
-    * [delete](#user-content-Vantiq-delete)
-    * [deleteOne](#user-content-Vantiq-deleteOne)
-    * [publish](#user-content-Vantiq-publish)
-    * [execute](#user-content-Vantiq-execute)
-    * [evaluate](#user-content-Vantiq-evaluate)
-    * [query](#user-content-Vantiq-query)
+* [io.vantiq.client.Vantiq](#user-content-vantiq)
+    * [authenticate](#user-content-vantiq-authenticate)
+    * [setAccessToken](#user-content-vantiq-setAccessToken)
+    * [select](#user-content-vantiq-select)
+    * [selectOne](#user-content-vantiq-selectOne)
+    * [count](#user-content-vantiq-count)
+    * [insert](#user-content-vantiq-insert)
+    * [update](#user-content-vantiq-update)
+    * [upsert](#user-content-vantiq-upsert)
+    * [delete](#user-content-vantiq-delete)
+    * [deleteOne](#user-content-vantiq-deleteOne)
+    * [publish](#user-content-vantiq-publish)
+    * [execute](#user-content-vantiq-execute)
+    * [evaluate](#user-content-vantiq-evaluate)
+    * [query](#user-content-vantiq-query)
 
 All Vantiq SDK methods have both an asynchronous form and a
 synchronous form.  The asynchronous form requires a response
