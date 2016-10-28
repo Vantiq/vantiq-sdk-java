@@ -194,4 +194,23 @@ public class VantiqResponse {
         return this.body;
     }
 
+    public String toString() {
+        StringBuilder sb = new StringBuilder("VantiqResponse[\n");
+        sb.append("  statusCode:").append(this.statusCode).append('\n');
+        sb.append("  contentType:").append(this.contentType).append('\n');
+        if(this.count > -1) {
+            sb.append("  count:").append(this.count).append('\n');
+        }
+        if(this.errors != null) {
+            sb.append("  errors:").append(this.errors).append('\n');
+        }
+        if(this.exception != null) {
+            sb.append("  exception:").append(this.exception.getMessage()).append('\n');
+        }
+        if(this.body != null) {
+            sb.append("  body:").append(this.body).append('\n');
+        }
+        sb.append(']');
+        return sb.toString();
+    }
 }

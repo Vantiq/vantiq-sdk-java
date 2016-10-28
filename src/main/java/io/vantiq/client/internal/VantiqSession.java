@@ -5,25 +5,21 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
-import io.vantiq.client.ResponseHandler;
-import io.vantiq.client.Vantiq;
-import io.vantiq.client.VantiqError;
-import io.vantiq.client.VantiqResponse;
+import io.vantiq.client.*;
 import okhttp3.*;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Internal class that manages the authenticated access and interface
  * to the Vantiq REST API.
  */
 public class VantiqSession {
+
+    public final static MediaType APPLICATION_JSON = MediaType.parse("application/json");
+    public final static JsonParser          parser = new JsonParser();
+    public final static Gson                  gson = new Gson();
 
     public final static int DEFAULT_API_VERSION = 1;
 
@@ -34,8 +30,7 @@ public class VantiqSession {
     private boolean  authenticated;
     private String   accessToken;
 
-    private static final JsonParser parser = new JsonParser();
-    private static final Gson         gson = new Gson();
+    private VantiqSubscriber subscriber;
 
     public VantiqSession(String server) {
         this(server, DEFAULT_API_VERSION);
@@ -77,6 +72,20 @@ public class VantiqSession {
      */
     public String getAccessToken() {
         return this.accessToken;
+    }
+
+    /**
+     * Returns the server URL of the Vantiq system.
+     */
+    public String getServer() {
+        return this.server;
+    }
+
+    /**
+     * Returns the API version used
+     */
+    public int getApiVersion() {
+        return this.apiVersion;
     }
 
     /**
@@ -288,12 +297,12 @@ public class VantiqSession {
 
         RequestBody reqBody = null;
         if(body != null) {
-            reqBody = RequestBody.create(MediaType.parse("application/json"), body);
+            reqBody = RequestBody.create(APPLICATION_JSON, body);
         }
 
         Request request = new Request.Builder()
                 .url(urlBuilder.build())
-                .addHeader("Content-Type", "application/json")
+                .addHeader("Content-Type", APPLICATION_JSON.toString())
                 .addHeader("Authorization", authValue)
                 .method(method, reqBody)
                 .build();
@@ -307,6 +316,62 @@ public class VantiqSession {
             } catch(IOException ex) {
                 throw new RuntimeException(ex);
             }
+        }
+    }
+
+    //----------------------------------------------------------------
+    // Subscription Support using OkHttp
+    //----------------------------------------------------------------
+
+    /**
+     * Subscribes to a specific Vantiq event based on the given path.  A
+     * websocket connection is used to listen for the events.  If no connection
+     * is already established, then a connection is initiated.
+     *
+     * @param path The path that defines the event (e.g. /resource/id[/operation])
+     * @param callback The callback that is executed for every event that occurs.
+     */
+    public void subscribe(final String path, final SubscriptionCallback callback) {
+        if(!this.isAuthenticated()) {
+            throw new IllegalStateException("Not authenticated");
+        }
+
+        if(this.subscriber == null) {
+            this.subscriber = new VantiqSubscriber(this, client);
+            this.subscriber.connect(new VantiqSubscriberLifecycleListener() {
+                @Override
+                public void onConnect() {
+                    VantiqSession.this.subscriber.subscribe(path, callback);
+                }
+
+                @Override
+                public void onError(String message, ResponseBody body) {
+                    callback.onError(message);
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    callback.onFailure(t);
+                }
+
+                @Override
+                public void onClose() {
+                    // No-op
+                }
+            });
+        } else {
+            this.subscriber.subscribe(path, callback);
+        }
+    }
+
+    /**
+     * Unsubscribes to all current subscriptions by closing the WebSocket to the Vantiq
+     * server.
+     */
+    public void unsubscribeAll() {
+        if(this.subscriber != null) {
+            this.subscriber.close();
+            this.subscriber = null;
         }
     }
 }

@@ -1,0 +1,14 @@
+{
+  "name" : "JSONPlaceholder",
+  "type" : "REMOTE",
+  "active" : true,
+  "activationConstraint" : "",
+  "config" : {
+    "pollingInterval" : 5,
+    "query" : {
+      "contentType" : "application/json"
+    },
+    "uri" : "http://jsonplaceholder.typicode.com/posts"
+  },
+  "direction" : "BOTH"
+}

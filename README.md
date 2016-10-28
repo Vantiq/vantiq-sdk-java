@@ -21,7 +21,7 @@ In Gradle,
     }
     
     dependencies {
-        compile 'io.vantiq:vantiq-sdk:1.0.6'
+        compile 'io.vantiq:vantiq-sdk:1.0.7'
     }
 
 In Maven,
@@ -37,7 +37,7 @@ In Maven,
         <dependency>
             <groupId>io.vantiq</groupId>
             <artifactId>vantiq-sdk</artifactId>
-            <version>1.0.6</version>
+            <version>1.0.7</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>    

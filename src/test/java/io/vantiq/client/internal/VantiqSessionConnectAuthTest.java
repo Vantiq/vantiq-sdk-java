@@ -1,11 +1,10 @@
 package io.vantiq.client.internal;
 
-import com.squareup.okhttp.mockwebserver.MockResponse;
-import com.squareup.okhttp.mockwebserver.RecordedRequest;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.RecordedRequest;
 import io.vantiq.client.VantiqError;
 import io.vantiq.client.VantiqResponse;
 import io.vantiq.client.VantiqTestBase;
-import io.vantiq.client.internal.VantiqSession;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

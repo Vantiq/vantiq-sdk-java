@@ -16,9 +16,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertTrue;
@@ -53,6 +51,7 @@ public class VantiqIntegrationTest {
         vantiq = new Vantiq(server);
         vantiq.authenticate(username, password, handler);
         waitForCompletion();
+        assertThat("Authenticated: " + handler, vantiq.isAuthenticated(), is(true));
         handler.reset();
     }
 
@@ -267,17 +266,11 @@ public class VantiqIntegrationTest {
         assertTrue("Insert succeeded", handler.success);
 
         // Select all records and ensure that it was in the list
-        vantiq.select("TestType", Arrays.asList("_id", "id"), null, null, handler.reset());
+        Map<String,String> qual = new HashMap<String,String>();
+        qual.put("id", id);
+        vantiq.select("TestType", Arrays.asList("_id", "id"), qual, null, handler.reset());
         waitForCompletion();
-
-        int numRecords = handler.getBodyAsList().size();
-        JsonObject match = null;
-        for(JsonObject obj : handler.getBodyAsList()) {
-            if(id.equals(obj.get("id").getAsString())) {
-                match = obj;
-            }
-        }
-        assertThat("Select found inserted record", match, is(notNullValue()));
+        assertThat("Select found inserted", handler.getBodyAsList().size(), is(1));
 
         // Delete record
         JsonObject where = new JsonObject();
@@ -288,17 +281,9 @@ public class VantiqIntegrationTest {
         assertTrue("Delete succeeded", handler.success);
 
         // Select it back to ensure it was updated successfully
-        vantiq.select("TestType", Arrays.asList("_id", "id"), null, null, handler.reset());
+        vantiq.select("TestType", Arrays.asList("_id", "id"), qual, null, handler.reset());
         waitForCompletion();
-
-        assertThat("Delete removed record", handler.getBodyAsList().size(), is(numRecords - 1));
-        match = null;
-        for(JsonObject obj : handler.getBodyAsList()) {
-            if(id.equals(obj.get("id").getAsString())) {
-                match = obj;
-            }
-        }
-        assertThat("Select should not find deleted record", match, is(nullValue()));
+        assertThat("Delete removed record", handler.getBodyAsList().size(), is(0));
     }
 
     @Test
@@ -323,17 +308,12 @@ public class VantiqIntegrationTest {
         assertTrue("Insert succeeded", handler.success);
 
         // Select all records and ensure that it was in the list
-        vantiq.select("TestType", Arrays.asList("_id", "id"), null, null, handler.reset());
+        Map<String,String> qual = new HashMap<String,String>();
+        qual.put("id", id);
+        vantiq.select("TestType", Arrays.asList("_id", "id"), qual, null, handler.reset());
         waitForCompletion();
-
-        int numRecords = handler.getBodyAsList().size();
-        JsonObject match = null;
-        for(JsonObject obj : handler.getBodyAsList()) {
-            if(id.equals(obj.get("id").getAsString())) {
-                match = obj;
-            }
-        }
-        assertThat("Select found inserted record", match, is(notNullValue()));
+        assertThat("Select found inserted", handler.getBodyAsList().size(), is(1));
+        JsonObject match = handler.getBodyAsList().get(0);
 
         // Delete record
         vantiq.deleteOne("TestType", match.get("_id").getAsString(), handler.reset());
@@ -341,17 +321,9 @@ public class VantiqIntegrationTest {
         assertTrue("Delete succeeded", handler.success);
 
         // Select it back to ensure it was updated successfully
-        vantiq.select("TestType", Arrays.asList("_id", "id"), null, null, handler.reset());
+        vantiq.select("TestType", Arrays.asList("_id", "id"), qual, null, handler.reset());
         waitForCompletion();
-
-        assertThat("Delete removed record", handler.getBodyAsList().size(), is(numRecords - 1));
-        match = null;
-        for(JsonObject obj : handler.getBodyAsList()) {
-            if(id.equals(obj.get("id").getAsString())) {
-                match = obj;
-            }
-        }
-        assertThat("Select should not find deleted record", match, is(nullValue()));
+        assertThat("Delete removed record", handler.getBodyAsList().size(), is(0));
     }
 
     @Test
@@ -411,5 +383,80 @@ public class VantiqIntegrationTest {
         waitForCompletion();
 
         assertThat("Valid response", ((JsonPrimitive) handler.getBody()).getAsDouble(), is(2.0));
+    }
+
+    @Test
+    public void testSubscribeTopic() throws Exception {
+        UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
+
+        // Subscribe to topic
+        vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback);
+        callback.waitForCompletion();
+        callback.reset();
+
+        // Synchronously publish to the topic
+        Map body = new HashMap();
+        body.put("time", new Date());
+        VantiqResponse r = vantiq.publish("topics", "/test/topic", body);
+        assertThat("Valid publish", r.isSuccess(), is(true));
+
+        // Wait for the message
+        callback.waitForCompletion();
+        assertThat("Message received", callback.hasFired(), is(true));
+        assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/topics//test/topic"));
+
+        Map respBody = (Map) callback.getMessage().getBody();
+        assertThat("Body Path", (String) respBody.get("path"), is("/topics/test/topic/publish"));
+    }
+
+    @Test
+    public void testSubscribeSource() throws Exception {
+        UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
+
+        // Subscribe to source
+        vantiq.subscribe(Vantiq.SystemResources.SOURCES.value(), "JSONPlaceholder", null, callback);
+        callback.waitForCompletion();
+        callback.reset();
+
+        // Wait for the message
+        callback.waitForCompletion(5000);
+        assertThat("Message received", callback.hasFired(), is(true));
+        assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/sources/JSONPlaceholder"));
+
+        Map respBody = (Map) callback.getMessage().getBody();
+        assertThat("Body Path", (String) respBody.get("path"), is("/sources/JSONPlaceholder/receive"));
+    }
+
+    @Test
+    public void testSubscribeType() throws Exception {
+        UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
+
+        // Subscribe to type
+        vantiq.subscribe(Vantiq.SystemResources.TYPES.value(), "TestType", Vantiq.TypeOperation.INSERT, callback);
+        callback.waitForCompletion();
+        callback.reset();
+
+        // Synchronously insert record
+        Map<String,Object> record = new HashMap<String,Object>();
+        record.put("id", "SUB-" + (new Date()).getTime());
+        record.put("ts", "2016-10-26T23:22:12Z");
+        record.put("x", 3.14159);
+        record.put("k", 42);
+
+        Map<String,Integer> inner = new HashMap<String,Integer>();
+        inner.put("a", 1);
+        inner.put("b", 2);
+        record.put("o", inner);
+
+        VantiqResponse r = vantiq.insert("TestType", record);
+        assertThat("Valid insert", r.isSuccess(), is(true));
+
+        // Wait for the message
+        callback.waitForCompletion(5000);
+        assertThat("Message received", callback.hasFired(), is(true));
+        assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/types/TestType/insert"));
+
+        Map respBody = (Map) callback.getMessage().getBody();
+        assertThat("Body Path", (String) respBody.get("path"), startsWith("/types/TestType/insert"));
     }
 }

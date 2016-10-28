@@ -1,6 +1,6 @@
 package io.vantiq.client;
 
-import com.squareup.okhttp.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockResponse;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
@@ -153,4 +153,13 @@ public class VantiqConnectAuthTest extends VantiqTestBase {
         }
     }
 
+    @Test
+    public void testUnauthorizedSubscribe() throws Exception {
+        try {
+            vantiq.subscribe("topics", "/test/topic", null, null);
+            fail("Should not allow unauthenticated requests");
+        } catch(IllegalStateException ex) {
+            assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
+        }
+    }
 }

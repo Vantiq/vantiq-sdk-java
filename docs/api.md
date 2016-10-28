@@ -40,7 +40,6 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
 
 * [io.vantiq.client.Vantiq](#user-content-vantiq)
     * [authenticate](#user-content-vantiq-authenticate)
-    * [setAccessToken](#user-content-vantiq-setAccessToken)
     * [select](#user-content-vantiq-select)
     * [selectOne](#user-content-vantiq-selectOne)
     * [count](#user-content-vantiq-count)
@@ -53,6 +52,10 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
     * [execute](#user-content-vantiq-execute)
     * [evaluate](#user-content-vantiq-evaluate)
     * [query](#user-content-vantiq-query)
+    * [subscribe](#user-content-vantiq-subscribe)
+    * [unsubscribeAll](#user-content-vantiq-unsubscribeAll)
+    * [setAccessToken](#user-content-vantiq-setAccessToken)
+    * [getAccessToken](#user-content-vantiq-getAccessToken)
 
 All Vantiq SDK methods have both an asynchronous form and a
 synchronous form.  The asynchronous form requires a response
@@ -157,39 +160,6 @@ vantiq.authenticate("joe@user", "my-secr3t-passw0rd!#!", new BaseResponseHandler
     }
 
 });
-```
-
-## <a id="vantiq-setAccessToken"></a> Vantiq.setAccessToken
-
-The `setAccessToken` method provides a means for explicitly
-setting an access token without the `authentication` method.
-The token may be a token previously retrieved through the
-`authenticate` method or a long-lived token issued by the
-Vantiq server.
-
-After setting the access token, the SDK assumes that the
-session has been authenticated and operations can be issued.
-
-### Signature
-
-```java
-void vantiq.setAccessToken(String accessToken)
-```
-
-### Parameters
-
-Name | Type | Required | Description
-:--: | :--: | :------:| -----------
-accessToken | String | Yes | A valid access token used to provide access to the Vantiq server
-
-### Returns
-
-N/A
-
-### Example
-
-```java
-vantiq.setAccessToken("KJ7J5D3Gy0nXf0dK08HZIlZJXBwc3CbgpzrBdKPhfYo=");
 ```
 
 ## <a id="vantiq-select"></a> Vantiq.select
@@ -906,6 +876,188 @@ vantiq.query("sum", params, new BaseResponseHandler() {
     }
 
 });
+```
+
+## <a id="vantiq-subscribe"></a> Vantiq.subscribe
+
+The `subscribe` method creates a WebSocket to the Vantiq server and listens for specified events.  The provided
+callback is executed whenever a matching event occurs.
+
+### Signature
+
+```java
+void vantiq.subscribe(String resource, String name, TypeOperation operation, SubscriptionCallback callback)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+resource | String | Yes | The resource event to subscribe.  Must be either SystemResources.TOPICS.value(), SystemResources.SOURCES.value() or SystemResources.TYPES.value().
+name     | String | Yes | The resource name that identifies the specific resource event.  For topics, this is the topic name (e.g. '/my/topic/').  For sources, this is the source name.  For types, this is the data type name.
+operation| TypeOperation | No  | This only applies for 'types' and specifies the operation to listen to (e.g. TypeOperation.INSERT, TypeOperation.UPDATE, TypeOperation.DELETE)
+callback | SubscriptionCallback | Yes | This callback is executed when the specified events occur.
+
+The `SubscriptionCallback` interface contains 4 methods:
+
+Name | Argument | Description
+:--: | :--: | -----------
+`onConnect()` | N/A | Called once the connection has been established and the subscription has been acknowledged by the Vantiq server.
+`onMessage(m)`| SubscriptionMessage | Called for every matching event that occurs
+`onError(e)`  | String | Called whenever an error occurs that does not arise from an exception, such as if a non-success response is provided.  The argument provides the error message.
+`onFailure(e)`| Throwable | Called whenever an exception occurs during the subscription processing.
+
+The `SubscriptionMessage` contains the fields:
+
+Name | Type | Description
+:--: | :--: | -----------
+status | int | The status for the given message.  The possible values are the HTTP status codes.  Typically, this would be 100. 
+contentType | String | The content MIME type for the message body.  Typically, this is `application/json`.
+headers | Map<String,String> | Headers associated with the response.
+body | Object | The payload for the event.  For JSON encoded responses, this is typically a Map.
+
+The structure of the body of the event is:
+
+Name | Type | Description
+:--: | :--: | -----------
+path | String | The full event path
+value | Object | The payload of the event.
+
+### Returns
+
+N/A
+
+### Example
+
+In this example, we implement a callback that simply prints out the events to standard out:
+
+    public class StandardOutputCallback implements SubscriptionCallback {
+    
+        @Override
+        public void onConnect() {
+            System.out.println("Connected Successfully");
+        }
+    
+        @Override
+        public void onMessage(SubscriptionMessage message) {
+            System.out.println("Received Message: " + message);
+        }
+    
+        @Override
+        public void onError(String error) {
+            System.out.println("Error: " + error);
+        }
+    
+        @Override
+        public void onFailure(Throwable t) {
+            t.printStackTrace();
+        }
+        
+    }
+
+Create a subscription to the `/test/topic` topic that prints out when events are published to the topic.
+
+    vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), 
+                     "/test/topic", 
+                     null, 
+                     new StandardOutputCallback());
+
+Create a subscription to the `MySource` source that prints out when messages arrive at the source.
+
+    vantiq.subscribe(Vantiq.SystemResources.SOURCES.value(), 
+                     "MySource", 
+                     null, 
+                     new StandardOutputCallback());
+
+Create a subscription to the `MyDataType` type for that prints out when that type has been updated.
+
+    vantiq.subscribe(Vantiq.SystemResources.TYPES.value(), 
+                     "MyDataType", 
+                     Vantiq.TypeOperation.UPDATE, 
+                     new StandardOutputCallback());
+
+## <a id="vantiq-unsubscribeAll"></a> Vantiq.unsubscribeAll
+
+The `unsubscribeAll` method removes all active subscriptions to the Vantiq server by
+closing the WebSocket.
+
+### Signature
+
+```java
+void vantiq.unsubscribeAll()
+```
+
+### Parameters
+
+N/A
+
+### Returns
+
+N/A
+
+### Example
+
+    vantiq.unsubscribeAll();
+
+## <a id="vantiq-setAccessToken"></a> Vantiq.setAccessToken
+
+The `setAccessToken` method provides a means for explicitly
+setting an access token without the `authentication` method.
+The token may be a token previously retrieved through the
+`authenticate` method or a long-lived token issued by the
+Vantiq server.
+
+After setting the access token, the SDK assumes that the
+session has been authenticated and operations can be issued.
+
+### Signature
+
+```java
+void vantiq.setAccessToken(String accessToken)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+accessToken | String | Yes | A valid access token used to provide access to the Vantiq server
+
+### Returns
+
+N/A
+
+### Example
+
+```java
+vantiq.setAccessToken("KJ7J5D3Gy0nXf0dK08HZIlZJXBwc3CbgpzrBdKPhfYo=");
+```
+
+## <a id="vantiq-getAccessToken"></a> Vantiq.getAccessToken
+
+The `getAccessToken` method returns the access token that 
+is currently used by the SDK.  Typically, the access token
+is set by the Vantiq server response to the `authenticate`
+call.
+
+### Signature
+
+```java
+String vantiq.getAccessToken()
+```
+
+### Parameters
+
+N/A
+
+### Returns
+
+The current access token used for requests to the Vantiq server.  If not
+yet authenticated, then this may return `null`.
+
+### Example
+
+```java
+String accessToken = vantiq.getAccessToken();
 ```
 
 # <a id="VantiqResponse"></a> VantiqResponse

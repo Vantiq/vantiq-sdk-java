@@ -21,7 +21,6 @@ public class Vantiq {
         NODES("nodes"),
         PROCEDURES("procedures"),
         PROFILES("profiles"),
-        ANALYTICSMODEL("analyticsmodel"),
         RULES("rules"),
         SCALARS("scalars"),
         SOURCES("sources"),
@@ -40,7 +39,9 @@ public class Vantiq {
         }
     }
 
-    private static Gson gson = new Gson();
+    public enum TypeOperation {
+        INSERT, UPDATE, DELETE
+    }
 
     private VantiqSession session;
 
@@ -158,13 +159,13 @@ public class Vantiq {
 
         Map<String,String> queryParams = new HashMap<String,String>();
         if(propSpecs != null) {
-            queryParams.put("props", gson.toJson(propSpecs));
+            queryParams.put("props", VantiqSession.gson.toJson(propSpecs));
         }
         if(where != null) {
-            queryParams.put("where", gson.toJson(where));
+            queryParams.put("where", VantiqSession.gson.toJson(where));
         }
         if(sortSpec != null) {
-            queryParams.put("sort", gson.toJson(sortSpec.serialize()));
+            queryParams.put("sort", VantiqSession.gson.toJson(sortSpec.serialize()));
         }
         this.session.get(path, queryParams, new PassThruResponseHandler(responseHandler) {
             @Override
@@ -201,13 +202,13 @@ public class Vantiq {
 
         Map<String,String> queryParams = new HashMap<String,String>();
         if(propSpecs != null) {
-            queryParams.put("props", gson.toJson(propSpecs));
+            queryParams.put("props", VantiqSession.gson.toJson(propSpecs));
         }
         if(where != null) {
-            queryParams.put("where", gson.toJson(where));
+            queryParams.put("where", VantiqSession.gson.toJson(where));
         }
         if(sortSpec != null) {
-            queryParams.put("sort", gson.toJson(sortSpec.serialize()));
+            queryParams.put("sort", VantiqSession.gson.toJson(sortSpec.serialize()));
         }
 
         VantiqResponse response = this.session.get(path, queryParams, null);
@@ -278,10 +279,10 @@ public class Vantiq {
         queryParams.put("count", "true");
 
         // Since we are just counting, we only return "_id" property from server
-        queryParams.put("props", gson.toJson(Collections.singletonList("_id")));
+        queryParams.put("props", VantiqSession.gson.toJson(Collections.singletonList("_id")));
 
         if(where != null) {
-            queryParams.put("where", gson.toJson(where));
+            queryParams.put("where", VantiqSession.gson.toJson(where));
         }
 
         this.session.get(path, queryParams, new PassThruResponseHandler(responseHandler) {
@@ -318,10 +319,10 @@ public class Vantiq {
         queryParams.put("count", "true");
 
         // Since we are just counting, we only return "_id" property from server
-        queryParams.put("props", gson.toJson(Collections.singletonList("_id")));
+        queryParams.put("props", VantiqSession.gson.toJson(Collections.singletonList("_id")));
 
         if(where != null) {
-            queryParams.put("where", gson.toJson(where));
+            queryParams.put("where", VantiqSession.gson.toJson(where));
         }
 
         VantiqResponse response = this.session.get(path, queryParams, null);
@@ -346,7 +347,7 @@ public class Vantiq {
                        Object object,
                        ResponseHandler responseHandler) {
         String path = "/resources/" + resource;
-        this.session.post(path, null, gson.toJson(object), responseHandler);
+        this.session.post(path, null, VantiqSession.gson.toJson(object), responseHandler);
     }
 
     /**
@@ -360,7 +361,7 @@ public class Vantiq {
     public VantiqResponse insert(String resource,
                                  Object object) {
         String path = "/resources/" + resource;
-        return this.session.post(path, null, gson.toJson(object), null);
+        return this.session.post(path, null, VantiqSession.gson.toJson(object), null);
     }
 
     /**
@@ -380,7 +381,7 @@ public class Vantiq {
                        Object object,
                        ResponseHandler responseHandler) {
         String path = "/resources/" + resource + "/" + id;
-        this.session.put(path, null, gson.toJson(object), responseHandler);
+        this.session.put(path, null, VantiqSession.gson.toJson(object), responseHandler);
     }
 
     /**
@@ -396,7 +397,7 @@ public class Vantiq {
                                  String id,
                                  Object object) {
         String path = "/resources/" + resource + "/" + id;
-        return this.session.put(path, null, gson.toJson(object), null);
+        return this.session.put(path, null, VantiqSession.gson.toJson(object), null);
     }
 
     /**
@@ -429,7 +430,7 @@ public class Vantiq {
         Map<String,String> queryParams = new HashMap<String,String>();
         queryParams.put("upsert", "true");
 
-        this.session.post(path, queryParams, gson.toJson(object), responseHandler);
+        this.session.post(path, queryParams, VantiqSession.gson.toJson(object), responseHandler);
     }
 
     /**
@@ -458,7 +459,7 @@ public class Vantiq {
         Map<String,String> queryParams = new HashMap<String,String>();
         queryParams.put("upsert", "true");
 
-        return this.session.post(path, queryParams, gson.toJson(object), null);
+        return this.session.post(path, queryParams, VantiqSession.gson.toJson(object), null);
     }
 
     /**
@@ -480,7 +481,7 @@ public class Vantiq {
         Map<String,String> queryParams = new HashMap<String,String>();
         queryParams.put("count", "true");
         if(where != null) {
-            queryParams.put("where", gson.toJson(where));
+            queryParams.put("where", VantiqSession.gson.toJson(where));
         }
 
         this.session.delete(path, queryParams, new PassThruResponseHandler(responseHandler) {
@@ -508,7 +509,7 @@ public class Vantiq {
         Map<String,String> queryParams = new HashMap<String,String>();
         queryParams.put("count", "true");
         if(where != null) {
-            queryParams.put("where", gson.toJson(where));
+            queryParams.put("where", VantiqSession.gson.toJson(where));
         }
 
         VantiqResponse response = this.session.delete(path, queryParams, null);
@@ -583,7 +584,7 @@ public class Vantiq {
         }
 
         String path = "/resources/" + resource + "/" + id;
-        this.session.post(path, null, gson.toJson(payload), new PassThruResponseHandler(responseHandler) {
+        this.session.post(path, null, VantiqSession.gson.toJson(payload), new PassThruResponseHandler(responseHandler) {
             @Override
             public void onSuccess(Object body, Response response) {
                 this.delegate.onSuccess(true, response);
@@ -615,7 +616,7 @@ public class Vantiq {
         }
 
         String path = "/resources/" + resource + "/" + id;
-        VantiqResponse response = this.session.post(path, null, gson.toJson(payload), null);
+        VantiqResponse response = this.session.post(path, null, VantiqSession.gson.toJson(payload), null);
         if(response != null && response.isSuccess()) {
             response.setBody(true);
         }
@@ -636,7 +637,7 @@ public class Vantiq {
                         Object params,
                         ResponseHandler responseHandler) {
         String path = "/resources/" + SystemResources.PROCEDURES.value() + "/" + procedure;
-        this.session.post(path, null, gson.toJson(params), responseHandler);
+        this.session.post(path, null, VantiqSession.gson.toJson(params), responseHandler);
     }
 
     /**
@@ -651,7 +652,7 @@ public class Vantiq {
     public VantiqResponse execute(String procedure,
                                   Object params) {
         String path = "/resources/" + SystemResources.PROCEDURES.value() + "/" + procedure;
-        return this.session.post(path, null, gson.toJson(params), null);
+        return this.session.post(path, null, VantiqSession.gson.toJson(params), null);
     }
 
     /**
@@ -667,7 +668,7 @@ public class Vantiq {
                          Object params,
                          ResponseHandler responseHandler) {
         String path = "/resources/" + SystemResources.ANALYTICS_MODELS.value() + "/" + modelName;
-        this.session.post(path, null, gson.toJson(params), responseHandler);
+        this.session.post(path, null, VantiqSession.gson.toJson(params), responseHandler);
     }
 
     /**
@@ -681,7 +682,7 @@ public class Vantiq {
     public VantiqResponse evaluate(String modelName,
                                    Object params) {
         String path = "/resources/" + SystemResources.ANALYTICS_MODELS.value() + "/" + modelName;
-        return this.session.post(path, null, gson.toJson(params), null);
+        return this.session.post(path, null, VantiqSession.gson.toJson(params), null);
     }
 
     /**
@@ -701,7 +702,7 @@ public class Vantiq {
                       Object params,
                       ResponseHandler responseHandler) {
         String path = "/resources/sources/" + source + "/query";
-        this.session.post(path, null, gson.toJson(params), responseHandler);
+        this.session.post(path, null, VantiqSession.gson.toJson(params), responseHandler);
     }
 
     /**
@@ -719,7 +720,59 @@ public class Vantiq {
     public VantiqResponse query(String source,
                                 Object params) {
         String path = "/resources/sources/" + source + "/query";
-        return this.session.post(path, null, gson.toJson(params), null);
+        return this.session.post(path, null, VantiqSession.gson.toJson(params), null);
+    }
+
+    /**
+     * Subscribes to a specific topic, source, or type event.  This method uses a
+     * WebSocket with the Vantiq server to listen for the specified events.
+     *
+     * For sources, this will subscribe to message arrival events.  The name of the
+     * source is required (e.g. "MySource").
+     *
+     * For topics, this will subscribe to any messages published on that topic.  The
+     * name of the topic is required (e.g. "/foo/bar").
+     *
+     * For types, this will subscribe to the specified type event.  The name of the
+     * type and the operation (i.e. "insert", "update", or "delete") is required.
+     *
+     * @param resource The resource whose events to subscribe.  This must be the
+     *                 value of {@link Vantiq.SystemResources#TOPICS},
+     *                 {@link Vantiq.SystemResources#SOURCES}, or
+     *                 {@link Vantiq.SystemResources#TYPES}.
+     * @param id The id of the resource
+     * @param operation Only for "types", the specific operation event to subscribe to.
+     * @param callback The callback used when the event is received
+     */
+    public void subscribe(String resource,
+                          String id,
+                          TypeOperation operation,
+                          SubscriptionCallback callback) {
+
+        String path = "/" + resource + "/" + id;
+        if(SystemResources.SOURCES.value().equals(resource) ||
+           SystemResources.TOPICS.value().equals(resource)) {
+            if(operation != null) {
+                throw new IllegalArgumentException("Operation only support for 'types'");
+            }
+        } else if(SystemResources.TYPES.value().equals(resource)) {
+            if(operation == null) {
+                throw new IllegalArgumentException("Operation required for 'types'");
+            }
+            path += "/" + operation.toString().toLowerCase();
+        } else {
+            throw new IllegalArgumentException("Only 'topics', 'sources' and 'types' support subscribe");
+        }
+
+        this.session.subscribe(path, callback);
+    }
+
+    /**
+     * Unsubscribes to all current subscriptions by closing the WebSocket to the Vantiq
+     * server.
+     */
+    public void unsubscribeAll() {
+        this.session.unsubscribeAll();
     }
 
     //----------------------------------------------------------------------------------

@@ -1,16 +1,14 @@
 package io.vantiq.client.internal;
 
 import com.google.gson.JsonObject;
-import com.squareup.okhttp.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockResponse;
 import io.vantiq.client.VantiqResponse;
 import io.vantiq.client.VantiqTestBase;
-import io.vantiq.client.internal.VantiqSession;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
