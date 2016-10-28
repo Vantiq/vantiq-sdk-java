@@ -114,6 +114,8 @@ public class VantiqResponse {
 
     /**
      * Returns the underlying response object
+     *
+     * @return The raw response from the Vantiq server
      */
     public Response getResponse() {
         return this.response;
@@ -122,6 +124,8 @@ public class VantiqResponse {
     /**
      * Returns true if the call was successfully, meaning there were no errors
      * or exceptions
+     *
+     * @return Boolean indicating if the call was successful.
      */
     public boolean isSuccess() {
         return this.response.isSuccessful();

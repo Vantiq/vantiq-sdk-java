@@ -14,6 +14,8 @@ public class SubscriptionMessage {
 
     /**
      * The HTTP status code for this message.  Usually, this is 100.
+     *
+     * @return The status code for the message
      */
     public int getStatus() {
         return status;
@@ -22,13 +24,17 @@ public class SubscriptionMessage {
     /**
      * The content type for the body of the message.  Usually, this is
      * application/json indicating the content was JSON encoded.
+     *
+     * @return The MIME type for the message body
      */
     public String getContentType() {
         return contentType;
     }
 
     /**
-     * The headers associated with the response.
+     * The headers associated with the message.
+     *
+     * @return The headers for the message.
      */
     public Map<String, String> getHeaders() {
         return headers;
@@ -37,6 +43,8 @@ public class SubscriptionMessage {
     /**
      * Returns the payload for the message.  For a JSON encoded
      * message, this would be a Map.
+     *
+     * @return The body of the message.
      */
     public Object getBody() {
         return body;

@@ -42,6 +42,7 @@ public class BaseResponseHandler implements ResponseHandler {
 
     /**
      * Returns the response
+     * @return The response from the Vantiq server.
      */
     public VantiqResponse getResponse() {
         return this.response;

@@ -57,6 +57,8 @@ public class VantiqSession {
      *
      * Since the access token is explicitly set, we assume the session is
      * authenticated if the access token is not null.
+     *
+     * @param accessToken The access token to set
      */
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
@@ -76,6 +78,8 @@ public class VantiqSession {
 
     /**
      * Returns the server URL of the Vantiq system.
+     *
+     * @return The server URL
      */
     public String getServer() {
         return this.server;
@@ -83,6 +87,8 @@ public class VantiqSession {
 
     /**
      * Returns the API version used
+     *
+     * @return The API version
      */
     public int getApiVersion() {
         return this.apiVersion;
@@ -137,6 +143,7 @@ public class VantiqSession {
      * @param responseHandler The response handler that is called upon completion.  If null,
      *                        then the call is performed synchronously and the response is
      *                        provided as the returned value.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse authenticate(String username, String password, ResponseHandler responseHandler) {
         String authValue = "Basic " + encode(username + ":" + password);
@@ -204,6 +211,7 @@ public class VantiqSession {
      * @param responseHandler The response handler that is called upon completion.  If null,
      *                        then the call is performed synchronously and the response is
      *                        provided as the returned value.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse get(String path,
                               Map<String,String> queryParams,
@@ -221,6 +229,7 @@ public class VantiqSession {
      * @param responseHandler The response handler that is called upon completion.  If null,
      *                        then the call is performed synchronously and the response is
      *                        provided as the returned value.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse post(String path,
                                Map<String,String> queryParams,
@@ -239,6 +248,7 @@ public class VantiqSession {
      * @param responseHandler The response handler that is called upon completion.  If null,
      *                        then the call is performed synchronously and the response is
      *                        provided as the returned value.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse put(String path,
                               Map<String,String> queryParams,
@@ -256,6 +266,7 @@ public class VantiqSession {
      * @param responseHandler The response handler that is called upon completion.  If null,
      *                        then the call is performed synchronously and the response is
      *                        provided as the returned value.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse delete(String path,
                                  Map<String,String> queryParams,

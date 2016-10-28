@@ -128,6 +128,7 @@ public class Vantiq {
      *
      * @param username The username for the Vantiq server
      * @param password The password for the Vantiq server
+     * @return The response from the Vantiq server
      */
     public VantiqResponse authenticate(String username, String password) {
         VantiqResponse response = this.session.authenticate(username, password, null);
@@ -193,6 +194,7 @@ public class Vantiq {
      *              following the structure outline in the
      *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
      * @param sortSpec The optional sort specification to order the returned records.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse select(String resource,
                                  List<String> propSpecs,
@@ -250,6 +252,7 @@ public class Vantiq {
      * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
      *                 a user-defined type name.
      * @param id The key used to lookup the record.  The underlying "_id" can be used.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse selectOne(String resource,
                                     String id) {
@@ -311,6 +314,7 @@ public class Vantiq {
      * @param where The optional where constraint that filters the records returned.  The where is structured
      *              following the structure outline in the
      *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse count(String resource, Object where) {
         String path = "/resources/" + resource;
@@ -357,6 +361,7 @@ public class Vantiq {
      * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
      *                 a user-defined type name.
      * @param object The object to insert.  This will be converted to JSON using Gson.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse insert(String resource,
                                  Object object) {
@@ -392,6 +397,7 @@ public class Vantiq {
      *                 a user-defined type name.
      * @param id The key used to lookup the record.  The underlying "_id" can be used.
      * @param object The object to insert.  This will be converted to JSON using Gson.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse update(String resource,
                                  String id,
@@ -443,6 +449,7 @@ public class Vantiq {
      * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
      *                 a user-defined type name.
      * @param object The object to insert.  This will be converted to JSON using Gson.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse upsert(String resource,
                                  Object object) {
@@ -501,6 +508,7 @@ public class Vantiq {
      * @param where The required where constraint that filters the records returned.  The where is structured
      *              following the structure outline in the
      *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse delete(String resource,
                                  Object where) {
@@ -547,6 +555,7 @@ public class Vantiq {
      * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
      *                 a user-defined type name.
      * @param id The key used to lookup the record.  The underlying "_id" can be used.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse deleteOne(String resource,
                                     String id) {
@@ -606,6 +615,7 @@ public class Vantiq {
      * @param id The topic or source to publish.
      * @param payload For a topic, this is the message to publish.  For a source, this is the parameters that
      *                defines the publish.  This will be converted to JSON using Gson.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse publish(String resource,
                                   String id,
@@ -648,6 +658,7 @@ public class Vantiq {
      * @param params The arguments for the procedure.  The parameters can be passed as positional
      *               parameters using a JsonArray or as named parameters using a JsonObject.  The params
      *               is converted to JSON using Gson.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse execute(String procedure,
                                   Object params) {
@@ -678,6 +689,7 @@ public class Vantiq {
      * @param modelName The name of the analytics model to evaluate.
      * @param params The arguments for the model.  The parameters are passed as a JSON element
      *               containing the required inputs as defined in the analytics model.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse evaluate(String modelName,
                                    Object params) {
@@ -716,6 +728,7 @@ public class Vantiq {
      *
      * @param source The name of the source to query.
      * @param params The arguments for the query operation.  The params is converted to JSON using Gson.
+     * @return The response from the Vantiq server
      */
     public VantiqResponse query(String source,
                                 Object params) {
@@ -782,6 +795,8 @@ public class Vantiq {
     /**
      * Sets the access token for use in future requests to the Vantiq server.  This
      * can be a normal or long-lived token.
+     *
+     * @param accessToken The access token to set
      */
     public void setAccessToken(String accessToken) {
         this.session.setAccessToken(accessToken);
