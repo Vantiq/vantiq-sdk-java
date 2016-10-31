@@ -2,11 +2,7 @@ package io.vantiq.client.internal;
 
 import io.vantiq.client.SubscriptionCallback;
 import io.vantiq.client.SubscriptionMessage;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import okhttp3.*;
 import okhttp3.ws.WebSocket;
 import okhttp3.ws.WebSocketCall;
 import okhttp3.ws.WebSocketListener;

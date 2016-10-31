@@ -1,9 +1,6 @@
 package io.vantiq.client;
 
-import com.google.gson.*;
-
-import java.lang.reflect.Type;
-import java.util.List;
+import com.google.gson.JsonObject;
 
 /**
  * Class used to represent a sort specification for a select query.

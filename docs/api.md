@@ -56,6 +56,10 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
     * [unsubscribeAll](#user-content-vantiq-unsubscribeAll)
     * [setAccessToken](#user-content-vantiq-setAccessToken)
     * [getAccessToken](#user-content-vantiq-getAccessToken)
+    * [setServer](#user-content-vantiq-setServer)
+    * [getServer](#user-content-vantiq-getServer)
+    * [setUsername](#user-content-vantiq-setUsername)
+    * [getUsername](#user-content-vantiq-getUsername)
 
 All Vantiq SDK methods have both an asynchronous form and a
 synchronous form.  The asynchronous form requires a response
@@ -878,6 +882,60 @@ vantiq.query("sum", params, new BaseResponseHandler() {
 });
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+## <a id="vantiq-upload"></a> Vantiq.upload
+
+The `upload` method performs a synchronous upload of a file into an ArsDocument resource.
+
+
+### Signature
+
+```java
+JsonObject vantiq.upload(File file, String mimeType, String documentName)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+file | File | Yes | The file to be uploaded
+mimeType | String | Yes | The mime type of the file (e.g. "image/jpeg")
+String | documentName | Yes | The "name" of the ArsDocument to be inserted
+
+
+### Returns
+
+The `upload` method returns a `JsonObject` object containing the status of the request the ArsDocument object that was created to reference to uploaded file. The object will look something like this:
+
+```java
+{
+    "statusCode": 200,
+    "data": {
+        "name": "aUniqueImageName.jpg",
+        "fileType": "image/jpeg",
+        "content": "/docs/aUniqueImageName.jpg",
+        "ars_namespace": "myNamespace",
+        "ars_version": 1,
+        "ars_createdAt": "2016-08-29T22:17:12.848Z",
+        "ars_createdBy": "joeuser@gmail.com",
+        "_id": "57c4b4683ceead093065ecea"
+    }
+}
+```
+
+If the upload failed the statusCode will be something other than 200 and the result object will contain "code" and "message" strings describing the error.
+
+
 ## <a id="vantiq-subscribe"></a> Vantiq.subscribe
 
 The `subscribe` method creates a WebSocket to the Vantiq server and listens for specified events.  The provided
@@ -999,6 +1057,8 @@ N/A
 
     vantiq.unsubscribeAll();
 
+
+
 ## <a id="vantiq-setAccessToken"></a> Vantiq.setAccessToken
 
 The `setAccessToken` method provides a means for explicitly
@@ -1059,6 +1119,148 @@ yet authenticated, then this may return `null`.
 ```java
 String accessToken = vantiq.getAccessToken();
 ```
+
+
+
+
+
+
+
+
+
+## <a id="vantiq-setServer"></a> Vantiq.setServer
+
+The `setServer` method provides a means for explicitly
+setting the server URL after the Vantiq object has been instantiated.
+
+After setting the server, the SDK uses the URL for all future requests.
+
+### Signature
+
+```java
+void vantiq.setServer(String server)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+server | String | Yes | A valid server URL which points to a Vantiq server
+
+### Returns
+
+N/A
+
+### Example
+
+```java
+vantiq.setServer("https://api.vantiq.com");
+```
+
+## <a id="vantiq-getServer"></a> Vantiq.getServer
+
+The `getServer` method returns the server that 
+is currently used by the SDK.  
+
+### Signature
+
+```java
+String vantiq.getServer()
+```
+
+### Parameters
+
+N/A
+
+### Returns
+
+The current server used for requests to the Vantiq server.  
+
+### Example
+
+```java
+String server = vantiq.getServer();
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## <a id="vantiq-setUsername"></a> Vantiq.setUsername
+
+The `setUsername` method provides a means for explicitly
+setting the username after the Vantiq object has been instantiated.
+
+
+### Signature
+
+```java
+void vantiq.setUsername(String username)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+username | String | Yes | A valid username 
+
+### Returns
+
+N/A
+
+### Example
+
+```java
+vantiq.setUsername("myuser@gmail.com");
+```
+
+## <a id="vantiq-getUsername"></a> Vantiq.getUsername
+
+The `getUsername` method returns the username that 
+is currently used by the SDK.  
+
+### Signature
+
+```java
+String vantiq.getUsername()
+```
+
+### Parameters
+
+N/A
+
+### Returns
+
+The current username used for requests to the Vantiq username.  
+
+### Example
+
+```java
+String username = vantiq.getUsername();
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 # <a id="VantiqResponse"></a> VantiqResponse
 

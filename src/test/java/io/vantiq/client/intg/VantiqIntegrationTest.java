@@ -350,7 +350,7 @@ public class VantiqIntegrationTest {
         // Rule should insert the record into TestType
         // so select it to find the record.  However, this may take a little bit of time
         // so, adding slight delay.
-        Thread.sleep(50);
+        Thread.sleep(500);
 
         // Select all records and ensure that it was in the list
         JsonObject where = new JsonObject();

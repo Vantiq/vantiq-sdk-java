@@ -1,7 +1,6 @@
 package io.vantiq.client.internal;
 
 import okhttp3.ResponseBody;
-import org.omg.PortableServer.ThreadPolicyOperations;
 
 /**
  * Interface for listening to VantiqSubscriber lifecycle events

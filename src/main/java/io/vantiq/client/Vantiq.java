@@ -1,11 +1,12 @@
 package io.vantiq.client;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import io.vantiq.client.internal.VantiqSession;
 import okhttp3.Response;
 
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.*;
 
 /**
@@ -38,6 +39,8 @@ public class Vantiq {
             return this.value;
         }
     }
+
+    private static Gson gson = new Gson();
 
     public enum TypeOperation {
         INSERT, UPDATE, DELETE
@@ -104,6 +107,49 @@ public class Vantiq {
     public boolean isAuthenticated() {
         return this.session.isAuthenticated();
     }
+
+    /**
+     * Returns the server that was assigned when this user was
+     * successfully logged in with the Vantiq server instance (or null
+     * if not currently logged in).
+     *
+     * @return server string or null
+     */
+    public String getServer() {
+        return this.session.getServer();
+    }
+
+    /**
+     *  Sets the server; this is used if the app has remembered an old server and wants to re-use it. (It
+     *  could also be used to "un-authenticate", setting the server to null.
+     *
+     *  @param server The server to be used to avoid calling "authenticate"
+     */
+    public void setServer(String server) {
+        this.session.setServer(server);
+    }
+
+    /**
+     * Returns the username that was assigned when this user was
+     * successfully logged in with the Vantiq username instance (or null
+     * if not currently logged in).
+     *
+     * @return username string or null
+     */
+    public String getUsername() {
+        return this.session.getUsername();
+    }
+
+    /**
+     *  Sets the username; this is used if the app has remembered an old username and wants to re-use it. (It
+     *  could also be used to "un-authenticate", setting the username to null.
+     *
+     *  @param username The username to be used to avoid calling "authenticate"
+     */
+    public void setUsername(String username) {
+        this.session.setUsername(username);
+    }
+
 
     /**
      * Authenticates this Vantiq instance using the given credentials asynchronously.  The response
@@ -184,6 +230,56 @@ public class Vantiq {
     }
 
     /**
+     * Performs a batch query, specified by a JSON array.
+     *
+     * This is currently for internal use only and is not documented.
+     *
+     * @param requests A JsonArray of "request objects", each looking something like this:
+     *                 {
+     *                      "method": "GET",
+     *                      "headers": {
+     *                          "Content-type": "application/json"
+     *                      },
+     *                      "uri": /types?where={"name":"ArsType"}
+     *                 }
+     *
+     *                 Note that anything past the "?" in the "uri" (which means the "where" clause in this case)
+     *                 must be URL encoded.
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void batch(JsonArray requests,
+                       ResponseHandler responseHandler) {
+        String path = "/batch";
+
+        Map<String,String> queryParams = new HashMap<String,String>();
+
+        for (int i=0; i<requests.size(); i++)
+        {
+            JsonObject jo = (JsonObject)requests.get(i);
+            JsonObject headers = (JsonObject)jo.get("headers");
+
+            headers.addProperty("Authorization","Bearer " + this.getAccessToken());
+        }
+
+        String body = requests.toString();
+
+        this.session.post(path, queryParams, body, new PassThruResponseHandler(responseHandler) {
+            @Override
+            public void onSuccess(Object body, Response response) {
+                if(body instanceof JsonArray) {
+                    JsonArray arr = (JsonArray) body;
+                    List<JsonObject> resultBody = new ArrayList<JsonObject>();
+                    for(int i=0; i<arr.size(); i++) {
+                        resultBody.add((JsonObject) arr.get(i));
+                    }
+                    this.delegate.onSuccess(resultBody, response);
+                }
+            }
+        });
+    }
+
+    /**
+     * Returns the record for the given resource and specified id.  The response is a single JsonObject.
      * Performs a query to search for records that match the given constraints synchronously.
      * The response body will be a List of JsonObject objects.
      *
@@ -736,6 +832,233 @@ public class Vantiq {
         return this.session.post(path, null, VantiqSession.gson.toJson(params), null);
     }
 
+    private boolean verifyAccessToken() throws Exception
+    {
+        String server = this.session.getServer();
+        String path = server + "/api/v1/_status";
+        HttpURLConnection connection = null;
+
+        String authValue = "Bearer " + this.session.getAccessToken();
+
+        URL url = new URL(path);
+        connection = (HttpURLConnection) url.openConnection();
+        connection.setDoInput(true);
+        connection.setDoOutput(false);
+        connection.setUseCaches(false);
+
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Authorization", authValue);
+
+        int responseCode = connection.getResponseCode();
+
+        if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public JsonObject upload(File file, String mimeType, String documentName) throws Exception
+    {
+        JsonObject responseObject = new JsonObject();
+
+        //
+        //  There is no way to "fail early" with a bad access token when using HttpURLConnection like this, so
+        //  we do a quick verification of the access token before doing the real upload. The upload could *still* fail
+        //  with a 401 in the next few milliseconds but that's very unlikely. We just want to reduce the chances that we
+        //  will do a 50MB upload and find out at the end that it failed with a 401.
+        //
+        if (!this.verifyAccessToken())
+        {
+            responseObject.addProperty("statusCode",HttpURLConnection.HTTP_UNAUTHORIZED);
+            responseObject.addProperty("message","Unauthorized");
+            responseObject.addProperty("code","io.vantiq.client.unauthorized");
+            return responseObject;
+        }
+
+        responseObject.addProperty("statusCode",0);
+
+        String server = this.session.getServer();
+        String path = server + "/api/v1/resources/" + SystemResources.DOCUMENTS.value();
+        HttpURLConnection connection = null;
+        DataOutputStream outputStream = null;
+        InputStream inputStream = null;
+
+        String twoHyphens = "--";
+        String boundary =  "*****"+Long.toString(System.currentTimeMillis())+"*****";
+        String lineEnd = "\r\n";
+
+        int bytesRead, bytesAvailable, bufferSize;
+        byte[] buffer;
+        int maxBufferSize = 1024*1024;
+
+        String filefield = "defaultName";
+        String authValue = "Bearer " + this.session.getAccessToken();
+
+        FileInputStream fileInputStream = new FileInputStream(file);
+
+        URL url = new URL(path);
+        connection = (HttpURLConnection) url.openConnection();
+        connection.setChunkedStreamingMode(maxBufferSize);
+        connection.setDoInput(true);
+        connection.setDoOutput(true);
+        connection.setUseCaches(false);
+
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Authorization", authValue);
+        connection.setRequestProperty("Connection", "Keep-Alive");
+        connection.setRequestProperty("User-Agent", "Android Multipart HTTP Client 1.0");
+        connection.setRequestProperty("Content-Type", "multipart/form-data; boundary="+boundary);
+
+        //
+        //  getOutputStream opens a connection and sends POST and headers
+        //
+        outputStream = new DataOutputStream(connection.getOutputStream());
+
+        outputStream.writeBytes(twoHyphens + boundary + lineEnd);
+        outputStream.writeBytes("Content-Disposition: form-data; name=\"" + filefield + "\"; filename=\"" + documentName + "\"" + lineEnd);
+        outputStream.writeBytes("Content-Type: " + mimeType + lineEnd);
+        outputStream.writeBytes("Content-Transfer-Encoding: binary" + lineEnd);
+        outputStream.writeBytes(lineEnd);
+
+        bytesAvailable = fileInputStream.available();
+        bufferSize = Math.min(bytesAvailable, maxBufferSize);
+        buffer = new byte[bufferSize];
+
+        bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+
+        while (bytesRead > 0)
+        {
+            outputStream.write(buffer, 0, bufferSize);
+            bytesAvailable = fileInputStream.available();
+            bufferSize = Math.min(bytesAvailable, maxBufferSize);
+            bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+            //outputStream.flush();
+        }
+
+        outputStream.writeBytes(lineEnd + twoHyphens + boundary + twoHyphens + lineEnd);
+
+        fileInputStream.close();
+
+        //outputStream.flush();
+        outputStream.close();
+
+        int responseCode = connection.getResponseCode();
+
+        BufferedReader br = null;
+        StringBuilder sb = new StringBuilder();
+        StringBuilder errSB = new StringBuilder();
+        String line;
+
+        responseObject.addProperty("statusCode",responseCode);
+
+        if (responseCode != HttpURLConnection.HTTP_OK)
+        {
+            final InputStream err = connection.getErrorStream();
+
+            if (err != null)
+            {
+                try
+                {
+                    try
+                    {
+                        br = new BufferedReader(new InputStreamReader(err));
+
+                        while ((line = br.readLine()) != null)
+                        {
+                            errSB.append(line);
+                        }
+                    }
+                    catch (IOException e)
+                    {
+                        e.printStackTrace();
+                    }
+                    finally
+                    {
+                        if (br != null)
+                        {
+                            try
+                            {
+                                br.close();
+                            }
+                            catch (IOException e)
+                            {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    err.close();
+                }
+            }
+
+            String response = errSB.toString();
+
+            JsonParser jsonParser = new JsonParser();
+            JsonElement jsonElement = jsonParser.parse(response);
+            JsonObject errorObj = null;
+
+            if (jsonElement.isJsonArray())
+            {
+                JsonArray ja = jsonElement.getAsJsonArray();
+
+                if (ja.size() > 0)
+                {
+                    errorObj = ja.get(0).getAsJsonObject();
+                }
+            }
+            else
+            {
+                errorObj = jsonElement.getAsJsonObject();
+            }
+
+            responseObject.addProperty("code",errorObj.get("code").getAsString());
+            responseObject.addProperty("message",errorObj.get("message").getAsString());
+        }
+        else
+        {
+            inputStream = connection.getInputStream();
+
+            try
+            {
+                br = new BufferedReader(new InputStreamReader(inputStream));
+
+                while ((line = br.readLine()) != null)
+                {
+                    sb.append(line);
+                }
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+            finally
+            {
+                if (br != null)
+                {
+                    try
+                    {
+                        br.close();
+                    }
+                    catch (IOException e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+
+                inputStream.close();
+            }
+
+            String response = sb.toString();
+            JsonObject jo = gson.fromJson(response,JsonObject.class);
+            responseObject.add("data",jo);
+        }
+
+        return responseObject;
+    }
+
     /**
      * Subscribes to a specific topic, source, or type event.  This method uses a
      * WebSocket with the Vantiq server to listen for the specified events.
@@ -810,5 +1133,6 @@ public class Vantiq {
     public String getAccessToken() {
         return this.session.getAccessToken();
     }
+
 
 }

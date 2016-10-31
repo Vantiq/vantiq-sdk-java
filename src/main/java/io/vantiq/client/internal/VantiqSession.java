@@ -5,10 +5,17 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.vantiq.client.*;
+import com.google.gson.reflect.TypeToken;
+import io.vantiq.client.ResponseHandler;
+import io.vantiq.client.SubscriptionCallback;
+import io.vantiq.client.VantiqError;
+import io.vantiq.client.VantiqResponse;
 import okhttp3.*;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,6 +36,7 @@ public class VantiqSession {
     private int      apiVersion;
     private boolean  authenticated;
     private String   accessToken;
+    private String   username;
 
     private VantiqSubscriber subscriber;
 
@@ -62,9 +70,7 @@ public class VantiqSession {
      */
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
-        if(this.accessToken != null) {
-            this.authenticated = true;
-        }
+        this.authenticated = (this.accessToken != null? true: false);
     }
 
     /**
@@ -76,7 +82,22 @@ public class VantiqSession {
         return this.accessToken;
     }
 
-    /**
+
+    public String getUsername() {
+        return this.username;
+    }
+
+    public void setUsername(String username)
+    {
+        this.username = username;
+    }
+
+    public void setServer(String server) {
+        this.server = server;
+    }
+
+
+    /*
      * Returns the server URL of the Vantiq system.
      *
      * @return The server URL
@@ -115,7 +136,55 @@ public class VantiqSession {
                 responseHook(body);
                 this.responseHandler.onSuccess(body, response);
             } else {
-                this.responseHandler.onError(VantiqResponse.extractErrors(response), response);
+                try {
+                    //
+                    //  Normally when failing via an API call (such as "authenticate" or "select") the bodyString
+                    //  will contain a JSON-string like this:
+                    //
+                    //  [{"code":"io.vantiq.authentication.failed","message":"Unauthorized","parms":[]}]
+                    //  [{"code":"com.accessg2.ag2rs.type.not.found","message":"The type: XXX is not defined in the current namespace.","params":["XXX"]}]
+                    //
+                    //  These can be converted directly to VantiqError objects.
+                    //
+                    //  But sometimes we will get a bodyString like this:
+                    //
+                    //  {"error": "Authentication failed"}
+                    //
+                    //  In that case we just tease it apart as a JSON object and create a VantiqError manually.
+                    //
+                    String bodyString = response.body().string();
+
+                    List<VantiqError> errors = null;
+                    Type errorsType = new TypeToken<List<VantiqError>>(){}.getType();
+
+                    try
+                    {
+                        errors = gson.fromJson(bodyString, errorsType);
+                    }
+                    catch (Exception ex)
+                    {
+                        errors = null;
+                    }
+
+                    if ((errors == null) && (bodyString.length() > 0))
+                    {
+                        JsonObject jo = gson.fromJson(bodyString,JsonObject.class);
+
+                        errors = new ArrayList<VantiqError>();
+
+                        String code = "io.vantiq.status";
+                        String message = jo.get("error").getAsString() + " (" + response.code() + ")";
+
+                        VantiqError ve = new VantiqError(code,message,null);
+
+                        errors.add(ve);
+                    }
+
+                    this.responseHandler.onError(errors, response);
+                } catch(IOException ex) {
+                    this.responseHandler.onFailure(ex);
+                }
+
             }
         }
 
@@ -145,7 +214,8 @@ public class VantiqSession {
      *                        provided as the returned value.
      * @return The response from the Vantiq server
      */
-    public VantiqResponse authenticate(String username, String password, ResponseHandler responseHandler) {
+
+    public VantiqResponse authenticate(final String username, String password, ResponseHandler responseHandler) {
         String authValue = "Basic " + encode(username + ":" + password);
 
         Callback cb = null;
@@ -157,6 +227,7 @@ public class VantiqSession {
                     if (jsonBody != null && jsonBody.isJsonObject()) {
                         JsonElement token = ((JsonObject) jsonBody).get("accessToken");
                         if (token != null) {
+                            VantiqSession.this.username = username;
                             VantiqSession.this.accessToken = token.getAsString();
                             VantiqSession.this.authenticated = true;
                         }
