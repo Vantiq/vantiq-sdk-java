@@ -8,6 +8,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -121,5 +123,44 @@ public class VantiqSessionRequestTest extends VantiqTestBase {
         VantiqResponse response = session.get("/resources/types", null, null);
         assertTrue("Successful response", response.isSuccess());
         assertThat("Plain text body", (String) response.getBody(), is("Hello!"));
+    }
+
+    @Test
+    public void testUpload() throws Exception {
+        server.enqueue(new MockResponse()
+                            .setHeader("Content-Type", "application/json")
+                            .setResponseCode(200)
+                            .setBody(new JsonObjectBuilder()
+                                .addProperty("a", 1.2)
+                                .addProperty("b", 2.4)
+                                .json()));
+
+        session.upload("/resources/documents",
+                       new File(this.getClass().getResource("/testFile.txt").getFile()),
+                       "text/plain",
+                       "Test File",
+                       null,
+                       handler);
+        waitForCompletion();
+        assertTrue("Successful response", handler.success);
+    }
+
+    @Test
+    public void testUploadSync() throws Exception {
+        server.enqueue(new MockResponse()
+                           .setHeader("Content-Type", "application/json")
+                           .setResponseCode(200)
+                           .setBody(new JsonObjectBuilder()
+                                        .addProperty("a", 1.2)
+                                        .addProperty("b", 2.4)
+                                        .json()));
+
+        VantiqResponse response = session.upload("/resources/documents",
+                                                 new File(this.getClass().getResource("/testFile.txt").getFile()),
+                                                 "text/plain",
+                                                 "Test File",
+                                                 null,
+                                                 null);
+        assertTrue("Successful response", response.isSuccess());
     }
 }

@@ -8,10 +8,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.*;
 
 /**
@@ -467,4 +469,65 @@ public class VantiqRequestTest extends VantiqTestBase {
         assertTrue("Successful response", handler.success);
         assertThat("Valid body", handler.getBodyAsJsonObject().get("total").getAsInt(), is(3));
     }
+
+    @Test
+    public void testUploadInvalidSession() throws Exception {
+        server.enqueue(new MockResponse()
+                           .setHeader("Content-Type", "application/json")
+                           .setResponseCode(401));
+
+        String fileName = "testFile.txt";
+        File file = new File(this.getClass().getResource("/" + fileName).getFile());
+        vantiq.upload(file, "text/plain", fileName, handler);
+        waitForCompletion();
+
+        // Assert that we had an invalid response
+        assertTrue("Error response", !handler.success);
+        assertThat("Invalid Authentication Status", handler.getStatusCode(), is(401));
+    }
+
+    @Test
+    public void testUpload() throws Exception {
+        // Note that this needs to respond to 2 requests.  First, there is the
+        // verify session (_status) request, then there is the main request.
+        server.enqueue(new MockResponse()
+                           .setHeader("Content-Type", "application/json")
+                           .setResponseCode(200));
+        server.enqueue(new MockResponse()
+                           .setHeader("Content-Type", "application/json")
+                           .setResponseCode(200)
+                           .setBody(new JsonObjectBuilder()
+                                        .addProperty("name", "testFile.txt")
+                                        .addProperty("fileType", "text/plain")
+                                        .addProperty("content", "/docs/assets/someplace/testFile.txt")
+                                        .json()));
+
+        String fileName = "testFile.txt";
+        File file = new File(this.getClass().getResource("/" + fileName).getFile());
+        vantiq.upload(file, "text/plain", fileName, handler);
+        waitForCompletion();
+
+        // We check the first request to be the session validation
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/_status"));
+        assertThat("Valid method", request.getMethod(), is("GET"));
+
+        // We check the second request to be the upload
+        request = server.takeRequest();
+        url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/documents"));
+        assertThat("Valid method", request.getMethod(), is("POST"));
+
+        // Check that request has the proper headers
+        String multipartBody = request.getBody().readUtf8();
+        String pattern = "Content-Disposition: form-data; name=\"defaultName\"; filename=\"testFile.txt\"";
+        assertThat("Valid multi-part header", multipartBody, containsString(pattern));
+
+        // Check response
+        assertTrue("Successful response", handler.success);
+        assertThat("Valid body - name", ((JsonObject) handler.getBody()).get("name").getAsString(), is("testFile.txt"));
+        assertThat("Valid body - fileType", ((JsonObject) handler.getBody()).get("fileType").getAsString(), is("text/plain"));
+    }
+
 }

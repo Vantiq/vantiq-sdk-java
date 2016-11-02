@@ -832,231 +832,103 @@ public class Vantiq {
         return this.session.post(path, null, VantiqSession.gson.toJson(params), null);
     }
 
-    private boolean verifyAccessToken() throws Exception
-    {
-        String server = this.session.getServer();
-        String path = server + "/api/v1/_status";
-        HttpURLConnection connection = null;
+    /**
+     * Performs an upload of the given file asynchronously.  The response provides info on the
+     * document uploaded.
+     *
+     * @param file The file to upload
+     * @param contentType The MIME type for the file
+     * @param documentPath The path of the document to store in Vantiq
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void upload(final File file,
+                       final String contentType,
+                       final String documentPath,
+                       final ResponseHandler responseHandler) {
+        //
+        // Verify that we have a valid session first because we don't want the client to wait
+        // for a long upload to complete before determining that it would have failed because
+        // the session was expired.
+        //
+        this.session.get("_status", null, new ResponseHandler() {
+            @Override
+            public void onSuccess(Object body, Response response) {
+                //
+                // Proceed with the upload
+                //
+                String path = "/resources/" + SystemResources.DOCUMENTS.value();
+                Vantiq.this.session.upload(path, file, contentType, documentPath, null, responseHandler);
+            }
 
-        String authValue = "Bearer " + this.session.getAccessToken();
+            @Override
+            public void onError(List<VantiqError> errors, Response response) {
+                responseHandler.onError(errors, response);
+            }
 
-        URL url = new URL(path);
-        connection = (HttpURLConnection) url.openConnection();
-        connection.setDoInput(true);
-        connection.setDoOutput(false);
-        connection.setUseCaches(false);
-
-        connection.setRequestMethod("GET");
-        connection.setRequestProperty("Authorization", authValue);
-
-        int responseCode = connection.getResponseCode();
-
-        if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED)
-        {
-            return false;
-        }
-        return true;
+            @Override
+            public void onFailure(Throwable t) {
+                responseHandler.onFailure(t);
+            }
+        });
     }
 
-    public JsonObject upload(File file, String mimeType, String documentName) throws Exception
-    {
-        JsonObject responseObject = new JsonObject();
-
+    /**
+     * Performs an upload of the given file synchronously.  The response provides info on the
+     * document uploaded.
+     *
+     * @param file The file to upload
+     * @param contentType The MIME type for the file
+     * @param documentPath The path of the file in the Vantiq system
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse upload(File file, String contentType, String documentPath) {
         //
-        //  There is no way to "fail early" with a bad access token when using HttpURLConnection like this, so
-        //  we do a quick verification of the access token before doing the real upload. The upload could *still* fail
-        //  with a 401 in the next few milliseconds but that's very unlikely. We just want to reduce the chances that we
-        //  will do a 50MB upload and find out at the end that it failed with a 401.
+        // Verify that we have a valid session first because we don't want the client to wait
+        // for a long upload to complete before determining that it would have failed because
+        // the session was expired.
         //
-        if (!this.verifyAccessToken())
-        {
-            responseObject.addProperty("statusCode",HttpURLConnection.HTTP_UNAUTHORIZED);
-            responseObject.addProperty("message","Unauthorized");
-            responseObject.addProperty("code","io.vantiq.client.unauthorized");
-            return responseObject;
+        VantiqResponse response = this.session.get("_status", null, null);
+        if(response.getStatusCode() != 200) {
+            return response;
         }
 
-        responseObject.addProperty("statusCode",0);
-
-        String server = this.session.getServer();
-        String path = server + "/api/v1/resources/" + SystemResources.DOCUMENTS.value();
-        HttpURLConnection connection = null;
-        DataOutputStream outputStream = null;
-        InputStream inputStream = null;
-
-        String twoHyphens = "--";
-        String boundary =  "*****"+Long.toString(System.currentTimeMillis())+"*****";
-        String lineEnd = "\r\n";
-
-        int bytesRead, bytesAvailable, bufferSize;
-        byte[] buffer;
-        int maxBufferSize = 1024*1024;
-
-        String filefield = "defaultName";
-        String authValue = "Bearer " + this.session.getAccessToken();
-
-        FileInputStream fileInputStream = new FileInputStream(file);
-
-        URL url = new URL(path);
-        connection = (HttpURLConnection) url.openConnection();
-        connection.setChunkedStreamingMode(maxBufferSize);
-        connection.setDoInput(true);
-        connection.setDoOutput(true);
-        connection.setUseCaches(false);
-
-        connection.setRequestMethod("POST");
-        connection.setRequestProperty("Authorization", authValue);
-        connection.setRequestProperty("Connection", "Keep-Alive");
-        connection.setRequestProperty("User-Agent", "Android Multipart HTTP Client 1.0");
-        connection.setRequestProperty("Content-Type", "multipart/form-data; boundary="+boundary);
-
         //
-        //  getOutputStream opens a connection and sends POST and headers
+        // Proceed with the upload
         //
-        outputStream = new DataOutputStream(connection.getOutputStream());
+        String path = "/resources/" + SystemResources.DOCUMENTS.value();
+        return this.session.upload(path, file, contentType, documentPath, null, null);
+    }
 
-        outputStream.writeBytes(twoHyphens + boundary + lineEnd);
-        outputStream.writeBytes("Content-Disposition: form-data; name=\"" + filefield + "\"; filename=\"" + documentName + "\"" + lineEnd);
-        outputStream.writeBytes("Content-Type: " + mimeType + lineEnd);
-        outputStream.writeBytes("Content-Transfer-Encoding: binary" + lineEnd);
-        outputStream.writeBytes(lineEnd);
+    /**
+     * Perform the download of a document synchronously from the specified path.  This method is
+     * expected to be used to download documents uploaded using the {@link #upload(File, String, String)}
+     * or {@link #upload(File, String, String, ResponseHandler)} methods.  The
+     * path used here is that returned in the "content" property returned in the
+     * response to the "upload" methods.
+     *
+     * The response body is an InputStream that provides the document content.
+     *
+     * @param path The path to the document to download
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse download(String path) {
+        return this.session.download(path, null);
+    }
 
-        bytesAvailable = fileInputStream.available();
-        bufferSize = Math.min(bytesAvailable, maxBufferSize);
-        buffer = new byte[bufferSize];
-
-        bytesRead = fileInputStream.read(buffer, 0, bufferSize);
-
-        while (bytesRead > 0)
-        {
-            outputStream.write(buffer, 0, bufferSize);
-            bytesAvailable = fileInputStream.available();
-            bufferSize = Math.min(bytesAvailable, maxBufferSize);
-            bytesRead = fileInputStream.read(buffer, 0, bufferSize);
-            //outputStream.flush();
-        }
-
-        outputStream.writeBytes(lineEnd + twoHyphens + boundary + twoHyphens + lineEnd);
-
-        fileInputStream.close();
-
-        //outputStream.flush();
-        outputStream.close();
-
-        int responseCode = connection.getResponseCode();
-
-        BufferedReader br = null;
-        StringBuilder sb = new StringBuilder();
-        StringBuilder errSB = new StringBuilder();
-        String line;
-
-        responseObject.addProperty("statusCode",responseCode);
-
-        if (responseCode != HttpURLConnection.HTTP_OK)
-        {
-            final InputStream err = connection.getErrorStream();
-
-            if (err != null)
-            {
-                try
-                {
-                    try
-                    {
-                        br = new BufferedReader(new InputStreamReader(err));
-
-                        while ((line = br.readLine()) != null)
-                        {
-                            errSB.append(line);
-                        }
-                    }
-                    catch (IOException e)
-                    {
-                        e.printStackTrace();
-                    }
-                    finally
-                    {
-                        if (br != null)
-                        {
-                            try
-                            {
-                                br.close();
-                            }
-                            catch (IOException e)
-                            {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                }
-                finally
-                {
-                    err.close();
-                }
-            }
-
-            String response = errSB.toString();
-
-            JsonParser jsonParser = new JsonParser();
-            JsonElement jsonElement = jsonParser.parse(response);
-            JsonObject errorObj = null;
-
-            if (jsonElement.isJsonArray())
-            {
-                JsonArray ja = jsonElement.getAsJsonArray();
-
-                if (ja.size() > 0)
-                {
-                    errorObj = ja.get(0).getAsJsonObject();
-                }
-            }
-            else
-            {
-                errorObj = jsonElement.getAsJsonObject();
-            }
-
-            responseObject.addProperty("code",errorObj.get("code").getAsString());
-            responseObject.addProperty("message",errorObj.get("message").getAsString());
-        }
-        else
-        {
-            inputStream = connection.getInputStream();
-
-            try
-            {
-                br = new BufferedReader(new InputStreamReader(inputStream));
-
-                while ((line = br.readLine()) != null)
-                {
-                    sb.append(line);
-                }
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
-            finally
-            {
-                if (br != null)
-                {
-                    try
-                    {
-                        br.close();
-                    }
-                    catch (IOException e)
-                    {
-                        e.printStackTrace();
-                    }
-                }
-
-                inputStream.close();
-            }
-
-            String response = sb.toString();
-            JsonObject jo = gson.fromJson(response,JsonObject.class);
-            responseObject.add("data",jo);
-        }
-
-        return responseObject;
+    /**
+     * Perform the download of a document asynchronously from the specified path.  This method is
+     * expected to be used to download documents uploaded using the {@link #upload(File, String, String)}
+     * or {@link #upload(File, String, String, ResponseHandler)} methods.  The
+     * path used here is that returned in the "content" property returned in the
+     * response to the "upload" methods.
+     *
+     * The response body is an InputStream that provides the document content.
+     *
+     * @param path The path to the document to download
+     * @param responseHandler The response handler that is called when the response starts downloading.
+     */
+    public void download(String path, ResponseHandler responseHandler) {
+        this.session.download(path, responseHandler);
     }
 
     /**

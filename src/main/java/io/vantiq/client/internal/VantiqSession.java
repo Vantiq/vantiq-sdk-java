@@ -11,12 +11,15 @@ import io.vantiq.client.SubscriptionCallback;
 import io.vantiq.client.VantiqError;
 import io.vantiq.client.VantiqResponse;
 import okhttp3.*;
+import okio.Timeout;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Internal class that manages the authenticated access and interface
@@ -25,12 +28,15 @@ import java.util.Map;
 public class VantiqSession {
 
     public final static MediaType APPLICATION_JSON = MediaType.parse("application/json");
-    public final static JsonParser          parser = new JsonParser();
     public final static Gson                  gson = new Gson();
 
     public final static int DEFAULT_API_VERSION = 1;
 
-    private final OkHttpClient client = new OkHttpClient();
+    private final OkHttpClient client =
+        new OkHttpClient.Builder()
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build();
 
     private String   server;
     private int      apiVersion;
@@ -122,17 +128,23 @@ public class VantiqSession {
     static class CallbackAdapter implements Callback {
 
         private ResponseHandler responseHandler;
+        private boolean isStreamingResponse = false;
 
         protected void responseHook(Object body) {}
 
         public CallbackAdapter(ResponseHandler responseHandler) {
+            this(responseHandler, /*isStreamingResponse=*/ false);
+        }
+
+        public CallbackAdapter(ResponseHandler responseHandler, boolean isStreamingResponse) {
             this.responseHandler = responseHandler;
+            this.isStreamingResponse = isStreamingResponse;
         }
 
         @Override
         public void onResponse(Call call, Response response) throws IOException {
             if(response.isSuccessful()) {
-                Object body = VantiqResponse.extractBody(response);
+                Object body = VantiqResponse.extractBody(response, this.isStreamingResponse);
                 responseHook(body);
                 this.responseHandler.onSuccess(body, response);
             } else {
@@ -196,14 +208,6 @@ public class VantiqSession {
     }
 
     /**
-     * Perform Base64 encoding.  Since Android has some limitations, we detect what's available
-     * and use that.
-     */
-    private String encode(String value) {
-        return BaseEncoding.base64().encode(value.getBytes());
-    }
-
-    /**
      * Authenticates onto the Vantiq server with the provided credentials.  After
      * this call completes, the credentials are not stored.
      *
@@ -216,8 +220,6 @@ public class VantiqSession {
      */
 
     public VantiqResponse authenticate(final String username, String password, ResponseHandler responseHandler) {
-        String authValue = "Basic " + encode(username + ":" + password);
-
         Callback cb = null;
         if(responseHandler != null) {
             cb = new CallbackAdapter(responseHandler) {
@@ -236,7 +238,8 @@ public class VantiqSession {
             };
         }
 
-        VantiqResponse response = this.request(authValue, "GET", "authenticate", null, null, cb);
+        VantiqResponse response = this.request(Credentials.basic(username, password), "GET", "authenticate",
+                                               null, null, false, cb);
         if(response != null) {
             JsonElement jsonBody = (JsonElement) response.getBody();
             if (jsonBody != null && jsonBody.isJsonObject()) {
@@ -288,7 +291,7 @@ public class VantiqSession {
                               Map<String,String> queryParams,
                               ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "GET", fullpath(path), queryParams, null, cb);
+        return this.request(authValue(), "GET", fullpath(path), queryParams, null, false, cb);
     }
 
     /**
@@ -307,7 +310,7 @@ public class VantiqSession {
                                String body,
                                ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "POST", fullpath(path), queryParams, body, cb);
+        return this.request(authValue(), "POST", fullpath(path), queryParams, body, false, cb);
     }
 
     /**
@@ -326,7 +329,7 @@ public class VantiqSession {
                               String body,
                               ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "PUT", fullpath(path), queryParams, body, cb);
+        return this.request(authValue(), "PUT", fullpath(path), queryParams, body, false, cb);
     }
 
     /**
@@ -343,7 +346,52 @@ public class VantiqSession {
                                  Map<String,String> queryParams,
                                  ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "DELETE", fullpath(path), queryParams, null, cb);
+        return this.request(authValue(), "DELETE", fullpath(path), queryParams, null, false, cb);
+    }
+
+    /**
+     * Uploads the given file.
+     *
+     * @param path The path for the resource to upload into (usually "/resources/documents")
+     * @param file The file to upload
+     * @param contentType The MIME type of the file uploaded
+     * @param documentPath The path of the file in the Vantiq system
+     * @param queryParams The unencoded query parameters included in the request
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse upload(String path,
+                                 File file,
+                                 String contentType,
+                                 String documentPath,
+                                 Map<String,String> queryParams,
+                                 ResponseHandler responseHandler) {
+        Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
+
+        // Build the multi-part request body
+        RequestBody fileBody = RequestBody.create(MediaType.parse(contentType), file);
+        RequestBody reqBody = new MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("defaultName", documentPath, fileBody)
+            .build();
+        return this.request(authValue(), "POST", fullpath(path), queryParams, reqBody, false, cb);
+    }
+
+    /**
+     * Downloads the given file.  The response body will be a stream that can be used to
+     * download the content of the file.
+     *
+     * @param path The path of the file to download
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse download(String path, ResponseHandler responseHandler) {
+        Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler, true) : null);
+        return this.request(authValue(), "GET", path, null, null, true, cb);
     }
 
     //----------------------------------------------------------------
@@ -358,7 +406,11 @@ public class VantiqSession {
      * @param method The HTTP method to use (e.g. GET, POST, etc)
      * @param path The full unencoded URL path to use (without query parameters)
      * @param queryParams The unencoded query parameters to include in the request
-     * @param body The optional request body to include.
+     * @param body The optional request body to include.  This can be a String or
+     *             pre-built RequestBody
+     * @param isStreamingResponse If true, the response should not download the entire response,
+     *                            rather a BufferedSource should be returned to allow the
+     *                            client to pull the data.  This is useful for downloading large content.
      * @param callback The callback that is called to handle the HTTP response.  If not null,
      *                 this executes asynchronously.  If null, then this executes synchronously
      *                 and returns the response.
@@ -367,7 +419,8 @@ public class VantiqSession {
                                    String method,
                                    String path,
                                    Map<String,String> queryParams,
-                                   String body,
+                                   Object body,
+                                   boolean isStreamingResponse,
                                    Callback callback) {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(this.server).newBuilder();
         urlBuilder.addPathSegments(path);
@@ -377,24 +430,36 @@ public class VantiqSession {
             }
         }
 
+        // Build request
+        Request.Builder builder = new Request.Builder()
+            .url(urlBuilder.build())
+            .addHeader("Authorization", authValue);
+
+        // Add body based on type
         RequestBody reqBody = null;
         if(body != null) {
-            reqBody = RequestBody.create(APPLICATION_JSON, body);
+            if(body instanceof String) {
+                builder.addHeader("Content-Type", APPLICATION_JSON.toString());
+                builder.method(method, RequestBody.create(APPLICATION_JSON, (String) body));
+            } else if(body instanceof RequestBody) {
+                builder.method(method, (RequestBody) body);
+            } else {
+                throw new IllegalArgumentException("Illegal request body type.  Must be 'String' or 'RequestBody'");
+            }
+        } else {
+            builder.method(method, null);
         }
 
-        Request request = new Request.Builder()
-                .url(urlBuilder.build())
-                .addHeader("Content-Type", APPLICATION_JSON.toString())
-                .addHeader("Authorization", authValue)
-                .method(method, reqBody)
-                .build();
+        // Finally construct the request
+        Request request = builder.build();
 
+        // Execute the request either synchronously or asynchronously based on existence of callback
         if(callback != null) {
             client.newCall(request).enqueue(callback);
             return null;
         } else {
             try {
-                return VantiqResponse.createFromResponse(client.newCall(request).execute());
+                return VantiqResponse.createFromResponse(client.newCall(request).execute(), isStreamingResponse);
             } catch(IOException ex) {
                 throw new RuntimeException(ex);
             }

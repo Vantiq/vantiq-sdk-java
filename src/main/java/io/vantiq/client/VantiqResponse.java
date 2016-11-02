@@ -7,6 +7,7 @@ import okhttp3.Response;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -26,14 +27,15 @@ public class VantiqResponse {
 
     private Response response;
 
-    public static VantiqResponse createFromResponse(Response response) {
+    public static VantiqResponse createFromResponse(Response response, boolean isStreamingResponse) {
         try {
             if (response.isSuccessful()) {
-                return new VantiqResponse(VantiqResponse.extractBody(response), response);
+                return new VantiqResponse(VantiqResponse.extractBody(response, isStreamingResponse), response);
             } else {
                 return new VantiqResponse(VantiqResponse.extractErrors(response), response);
             }
         } catch(Exception ex) {
+            ex.printStackTrace();
             return new VantiqResponse(ex);
         }
     }
@@ -86,29 +88,40 @@ public class VantiqResponse {
         this.body = body;
     }
 
-    public static Object extractBody(Response response) throws IOException {
+    public static Object extractBody(Response response, boolean isStreamingResponse) throws IOException {
         Object body = null;
 
-        String contentType = response.header("Content-Type");
-
-        if("application/json".equals(contentType)) {
-            String stringBody = response.body().string();
-            if (stringBody != null && stringBody.length() > 0) {
-                body = parser.parse(stringBody);
-            }
-        } else if(contentType != null && contentType.startsWith("text/")) {
-            body = response.body().string();
+        if(isStreamingResponse) {
+            body = response.body().source();
         } else {
-            // If not text, then just return the bytes
-            body = response.body().bytes();
+            String contentType = response.header("Content-Type");
+
+            if ("application/json".equals(contentType)) {
+                String stringBody = response.body().string();
+                if (stringBody != null && stringBody.length() > 0) {
+                    body = parser.parse(stringBody);
+                }
+            } else if (contentType != null && contentType.startsWith("text/")) {
+                body = response.body().string();
+            } else {
+                // If not text, then just return the bytes
+                body = response.body().bytes();
+            }
         }
 
         return body;
     }
 
     public static List<VantiqError> extractErrors(Response response) throws IOException {
-        Type errorsType = new TypeToken<List<VantiqError>>(){}.getType();
-        return gson.fromJson(response.body().string(), errorsType);
+        String body = response.body().string();
+        if(body != null) body = body.trim();
+
+        if(body.startsWith("[")) {
+            Type errorsType = new TypeToken<List<VantiqError>>(){}.getType();
+            return gson.fromJson(body, errorsType);
+        } else {
+            return Collections.singletonList(gson.fromJson(body, VantiqError.class));
+        }
     }
 
     /**

@@ -49,7 +49,7 @@ public class UnitTestResponseHandler extends BaseResponseHandler {
 
     public String toString() {
         if (this.success) {
-            return "SUCCESS: " + this.getBodyAsString();
+            return "SUCCESS: " + this.getBody();
         } else if (this.error) {
             return "ERROR: [" + this.getStatusCode() + "]: " + this.getErrors();
         } else if (this.failure) {

@@ -3,15 +3,13 @@ package io.vantiq.client.intg;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import io.vantiq.client.*;
-import io.vantiq.client.internal.VantiqSession;
-import okhttp3.Response;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import okio.*;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 
+import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -19,6 +17,7 @@ import java.util.*;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -410,6 +409,7 @@ public class VantiqIntegrationTest {
     }
 
     @Test
+    @Ignore("Setup JSONPlaceholder polling Source and run this test explicitly")
     public void testSubscribeSource() throws Exception {
         UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
 
@@ -458,5 +458,71 @@ public class VantiqIntegrationTest {
 
         Map respBody = (Map) callback.getMessage().getBody();
         assertThat("Body Path", (String) respBody.get("path"), startsWith("/types/TestType/insert"));
+    }
+
+    @Test
+    public void testUploadAndDownload() throws Exception {
+        String fileName = "testFile.txt";
+        File file = new File(this.getClass().getResource("/" + fileName).getFile());
+        vantiq.upload(file, "text/plain", fileName, handler);
+        waitForCompletion();
+
+        // Ensure the file uploaded successfully
+        assertTrue("Upload succeeded", handler.success);
+        assertThat("Correct name",     ((JsonObject) handler.getBody()).get("name").getAsString(), is(fileName));
+        assertThat("Correct fileType", ((JsonObject) handler.getBody()).get("fileType").getAsString(), is("text/plain"));
+        assertThat("Correct content",  ((JsonObject) handler.getBody()).get("content").getAsString(), is("/docs/" + fileName));
+
+        // Get the file content and ensure it's correct
+        handler.reset();
+        vantiq.selectOne(Vantiq.SystemResources.DOCUMENTS.value(), fileName, handler);
+        waitForCompletion();
+
+        // Ensure the succeeded
+        assertTrue("Select succeeded", handler.success);
+        assertThat("Correct name",     ((JsonObject) handler.getBody()).get("name").getAsString(), is(fileName));
+        assertThat("Correct fileType", ((JsonObject) handler.getBody()).get("fileType").getAsString(), is("text/plain"));
+        assertThat("Correct content",  ((JsonObject) handler.getBody()).get("content").getAsString(), is("/docs/" + fileName));
+
+        // Download the file and check the content
+        handler.reset();
+        vantiq.download("/docs/" + fileName, handler);
+        waitForCompletion();
+
+        assertThat("Download succeeded",   handler.success);
+        assertThat("Correct content type", handler.getContentType(), is("text/plain"));
+
+        BufferedSource source = ((BufferedSource) handler.getBody());
+        assertThat("Correct file content", source.readByteArray(), is(Files.readAllBytes(file.toPath())));
+    }
+
+    @Test
+    public void testUploadAndDownloadSync() throws Exception {
+        String fileName = "testFile.txt";
+        File file = new File(this.getClass().getResource("/" + fileName).getFile());
+        VantiqResponse response = vantiq.upload(file, "text/plain", fileName);
+
+        // Ensure the file uploaded successfully
+        assertTrue("Upload succeeded", response.isSuccess());
+        assertThat("Correct name",     ((JsonObject) response.getBody()).get("name").getAsString(), is(fileName));
+        assertThat("Correct fileType", ((JsonObject) response.getBody()).get("fileType").getAsString(), is("text/plain"));
+        assertThat("Correct content",  ((JsonObject) response.getBody()).get("content").getAsString(), is("/docs/" + fileName));
+
+        // Get the file content and ensure it's correct
+        response = vantiq.selectOne(Vantiq.SystemResources.DOCUMENTS.value(), fileName);
+
+        // Ensure the succeeded
+        assertTrue("Select succeeded", response.isSuccess());
+        assertThat("Correct name",     ((JsonObject) response.getBody()).get("name").getAsString(), is(fileName));
+        assertThat("Correct fileType", ((JsonObject) response.getBody()).get("fileType").getAsString(), is("text/plain"));
+        assertThat("Correct content",  ((JsonObject) response.getBody()).get("content").getAsString(), is("/docs/" + fileName));
+
+        // Download the file and check the content
+        response = vantiq.download("/docs/" + fileName);
+        assertThat("Download succeeded", response.isSuccess());
+        assertThat("Correct content type", response.getContentType(), is("text/plain"));
+
+        BufferedSource source = ((BufferedSource) response.getBody());
+        assertThat("Correct file content", source.readByteArray(), is(Files.readAllBytes(file.toPath())));
     }
 }

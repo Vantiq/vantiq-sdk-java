@@ -54,6 +54,8 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
     * [query](#user-content-vantiq-query)
     * [subscribe](#user-content-vantiq-subscribe)
     * [unsubscribeAll](#user-content-vantiq-unsubscribeAll)
+    * [upload](#user-content-vantiq-upload)
+    * [download](#user-content-vantiq-download)
     * [setAccessToken](#user-content-vantiq-setAccessToken)
     * [getAccessToken](#user-content-vantiq-getAccessToken)
     * [setServer](#user-content-vantiq-setServer)
@@ -883,59 +885,6 @@ vantiq.query("sum", params, new BaseResponseHandler() {
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-## <a id="vantiq-upload"></a> Vantiq.upload
-
-The `upload` method performs a synchronous upload of a file into an ArsDocument resource.
-
-
-### Signature
-
-```java
-JsonObject vantiq.upload(File file, String mimeType, String documentName)
-```
-
-### Parameters
-
-Name | Type | Required | Description
-:--: | :--: | :------:| -----------
-file | File | Yes | The file to be uploaded
-mimeType | String | Yes | The mime type of the file (e.g. "image/jpeg")
-String | documentName | Yes | The "name" of the ArsDocument to be inserted
-
-
-### Returns
-
-The `upload` method returns a `JsonObject` object containing the status of the request the ArsDocument object that was created to reference to uploaded file. The object will look something like this:
-
-```java
-{
-    "statusCode": 200,
-    "data": {
-        "name": "aUniqueImageName.jpg",
-        "fileType": "image/jpeg",
-        "content": "/docs/aUniqueImageName.jpg",
-        "ars_namespace": "myNamespace",
-        "ars_version": 1,
-        "ars_createdAt": "2016-08-29T22:17:12.848Z",
-        "ars_createdBy": "joeuser@gmail.com",
-        "_id": "57c4b4683ceead093065ecea"
-    }
-}
-```
-
-If the upload failed the statusCode will be something other than 200 and the result object will contain "code" and "message" strings describing the error.
-
-
 ## <a id="vantiq-subscribe"></a> Vantiq.subscribe
 
 The `subscribe` method creates a WebSocket to the Vantiq server and listens for specified events.  The provided
@@ -1058,6 +1007,125 @@ N/A
     vantiq.unsubscribeAll();
 
 
+
+
+
+
+
+## <a id="vantiq-upload"></a> Vantiq.upload
+
+The `upload` method performs a upload of a file into an ArsDocument resource.  The upload may be asynchronous or 
+synchronous.
+
+### Signature
+
+```java
+void vantiq.upload(File file, String contentType, String documentPath, ResponseHandler responseHandler)
+
+VantiqResopnse vantiq.upload(File file, String contentType, String documentPath)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+file | File | Yes | The file to be uploaded
+contentType | String | Yes | The MIME type of the uploaded file (e.g. "image/jpeg")
+String | documentPath | Yes | The "path" of the ArsDocument in Vantiq (e.g. "assets/myDocument.txt")
+
+### Returns
+
+The `upload` method returns a `JsonObject` object containing the information about the stored document.  In particular, the response will contain:
+
+Name | Type | Description
+:--: | :--: | -----------
+name | String | The document path (e.g. "assets/myDocument.txt")
+fileType | String | The MIME type of the uploaded file (e.g. "image/jpeg")
+content | String | This provides the URI path to download the content.  This is used in the [download](#user-content-vantiq-download) method.
+
+### Example
+
+The following uploads a text file asynchronously and prints out the location of the content:
+
+```java
+File myFile = ...
+    
+vantiq.upload(myFile, 
+              "text/plain", 
+              "myAssets/myFile.txt",
+              new BaseResponseHandler() {
+              
+    @Override public void onSuccess(Object body, Response response) {
+        super.onSuccess(body, response);
+        
+        System.out.println("Content Location = " + this.getBodyAsJsonObject().get("content"));
+    }
+    
+});
+
+
+
+## <a id="vantiq-download"></a> Vantiq.download
+
+The `download` method pulls down the content of a file that was
+previously uploaded.  The download method may be synchronous or asynchronous, but the data is always streamed to the client.
+
+### Signature
+
+```java
+void vantiq.download(String path, ResponseHandler responseHandler)
+
+VantiqResopnse vantiq.download(String path)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+path | String | Yes | This is the path to the file.  This can be gotten from the `content` field in the ArsDocument or the returned value from the `upload` method.
+
+### Returns
+
+The `download` response body is a `Okio.BufferedSource` that can be used
+to stream the data to the client.
+
+### Example
+
+The following calls the download asynchronously and prints out the file
+contents:
+
+```java
+String path = ...from ArsDocument...
+    
+vantiq.download(path, new BaseResponseHandler() {
+              
+    @Override public void onSuccess(Object body, Response response) {
+        super.onSuccess(body, response);
+
+        byte[] data = ((BufferedSource) body).readByteArray();
+        System.out.println("File: " + new String(data, "UTF-8"));
+    }
+    
+});
+```
+
+The following calls the download synchronoulsy and writes the file
+to disk:
+
+```java
+String path = ...from ArsDocument...
+OutputStream os = ...stream to write...
+
+VantiqResponse resopnse = vantiq.download(path);
+BufferedSource source = (BufferedSource) response.getBody();
+
+byte[] buf = new byte[1024];
+while((int len = source.read(buf)) != -1) {
+    os.write(buf, 0, len);
+}
+
+os.close();
+```
 
 ## <a id="vantiq-setAccessToken"></a> Vantiq.setAccessToken
 
