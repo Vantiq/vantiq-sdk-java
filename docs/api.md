@@ -1062,7 +1062,7 @@ vantiq.upload(myFile,
     }
     
 });
-
+```
 
 
 ## <a id="vantiq-download"></a> Vantiq.download
