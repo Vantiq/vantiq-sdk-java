@@ -173,6 +173,7 @@ public class VantiqSubscriber implements WebSocketListener {
                     if(!isSubscribed) {
                         if(msg.getStatus() == 200) {
                             this.subscribed.put(requestId, Boolean.TRUE);
+                            callback.onConnect();
                         } else {
                             callback.onError("Error subscribing to '" + requestId + "'");
                         }

@@ -391,6 +391,7 @@ public class VantiqIntegrationTest {
         // Subscribe to topic
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback);
         callback.waitForCompletion();
+        assertThat("Connected", callback.isConnected(), is(true));
         callback.reset();
 
         // Synchronously publish to the topic
@@ -416,6 +417,7 @@ public class VantiqIntegrationTest {
         // Subscribe to source
         vantiq.subscribe(Vantiq.SystemResources.SOURCES.value(), "JSONPlaceholder", null, callback);
         callback.waitForCompletion();
+        assertThat("Connected", callback.isConnected(), is(true));
         callback.reset();
 
         // Wait for the message
@@ -434,6 +436,7 @@ public class VantiqIntegrationTest {
         // Subscribe to type
         vantiq.subscribe(Vantiq.SystemResources.TYPES.value(), "TestType", Vantiq.TypeOperation.INSERT, callback);
         callback.waitForCompletion();
+        assertThat("Connected", callback.isConnected(), is(true));
         callback.reset();
 
         // Synchronously insert record

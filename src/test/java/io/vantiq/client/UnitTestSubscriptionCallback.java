@@ -5,6 +5,7 @@ package io.vantiq.client;
  */
 public class UnitTestSubscriptionCallback implements SubscriptionCallback {
 
+    private boolean connected = false;
     private SubscriptionMessage message;
     private Throwable cause;
     private String error;
@@ -14,6 +15,7 @@ public class UnitTestSubscriptionCallback implements SubscriptionCallback {
     @Override
     public void onConnect() {
         this.fired = true;
+        this.connected = true;
         synchronized (this) {
             notify();
         }
@@ -58,6 +60,10 @@ public class UnitTestSubscriptionCallback implements SubscriptionCallback {
         return this.error;
     }
 
+    public boolean isConnected() {
+        return this.connected;
+    }
+
     public synchronized void waitForCompletion(int timeout) throws InterruptedException {
         if(!this.fired) {
             wait(timeout);
@@ -72,6 +78,7 @@ public class UnitTestSubscriptionCallback implements SubscriptionCallback {
         this.message = null;
         this.cause = null;
         this.error = null;
+        this.connected = false;
         this.fired = false;
     }
 
@@ -86,6 +93,8 @@ public class UnitTestSubscriptionCallback implements SubscriptionCallback {
             return "Error: " + this.error;
         } else if (this.cause != null) {
             return "Failure: " + this.cause.toString();
+        } else if (this.connected) {
+            return "Connected";
         } else {
             return "Callback not called";
         }

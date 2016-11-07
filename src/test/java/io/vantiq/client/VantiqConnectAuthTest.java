@@ -6,6 +6,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
@@ -157,6 +159,26 @@ public class VantiqConnectAuthTest extends VantiqTestBase {
     public void testUnauthorizedSubscribe() throws Exception {
         try {
             vantiq.subscribe("topics", "/test/topic", null, null);
+            fail("Should not allow unauthenticated requests");
+        } catch(IllegalStateException ex) {
+            assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
+        }
+    }
+
+    @Test
+    public void testUnauthorizedUpload() throws Exception {
+        try {
+            vantiq.upload(new File("/foo/bar/file.txt"), "text/plain", "file.txt", null);
+            fail("Should not allow unauthenticated requests");
+        } catch(IllegalStateException ex) {
+            assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
+        }
+    }
+
+    @Test
+    public void testUnauthorizedDownload() throws Exception {
+        try {
+            vantiq.download("file.txt", null);
             fail("Should not allow unauthenticated requests");
         } catch(IllegalStateException ex) {
             assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
