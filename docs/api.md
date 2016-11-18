@@ -62,6 +62,8 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
     * [getServer](#user-content-vantiq-getServer)
     * [setUsername](#user-content-vantiq-setUsername)
     * [getUsername](#user-content-vantiq-getUsername)
+    * [setEnablePings](#user-content-vantiq-setEnablePings)
+    * [isEnablePings](#user-content-vantiq-isEnablePings)
 
 All Vantiq SDK methods have both an asynchronous form and a
 synchronous form.  The asynchronous form requires a response
@@ -1321,7 +1323,61 @@ String username = vantiq.getUsername();
 
 
 
+## <a id="vantiq-setEnablePings"></a> Vantiq.setEnablePings
 
+The `setEnablePings` method configures the Vantiq client to periodically
+send _ping_ messages to the server when using WebSockets.  This may be required
+as some proxy servers will close connections if they are idle.  The default
+is _true_.
+
+### Signature
+
+```java
+void vantiq.setEnablePings(boolean enablePings)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+enablePings | Boolean | Yes | True means to periodicially send ping messages 
+
+### Returns
+
+N/A
+
+### Example
+
+```java
+vantiq.setEnablePings(true);
+```
+
+## <a id="vantiq-isEnablePings"></a> Vantiq.isEnablePings
+
+Returns if the Vantiq client will periodically
+send _ping_ messages to the server when using WebSockets.  This may be required
+as some proxy servers will close connections if they are idle.  The default
+is _true_.
+
+### Signature
+
+```java
+boolean vantiq.isEnablePings()
+```
+
+### Parameters
+
+N/A
+
+### Returns
+
+True if pinging is enabled.
+
+### Example
+
+```java
+boolean enablePings = vantiq.isEnablePings();
+```
 
 
 

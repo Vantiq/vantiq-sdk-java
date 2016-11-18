@@ -34,8 +34,8 @@ public class VantiqSession {
 
     private final OkHttpClient client =
         new OkHttpClient.Builder()
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(0, TimeUnit.SECONDS)
+            .writeTimeout(0, TimeUnit.SECONDS)
             .build();
 
     private String   server;
@@ -477,14 +477,17 @@ public class VantiqSession {
      *
      * @param path The path that defines the event (e.g. /resource/id[/operation])
      * @param callback The callback that is executed for every event that occurs.
+     * @param enablePings Indicates if pings should be enabled to ensure the websocket stays open
      */
-    public void subscribe(final String path, final SubscriptionCallback callback) {
+    public void subscribe(final String path,
+                          final SubscriptionCallback callback,
+                          boolean enablePings) {
         if(!this.isAuthenticated()) {
             throw new IllegalStateException("Not authenticated");
         }
 
         if(this.subscriber == null) {
-            this.subscriber = new VantiqSubscriber(this, client);
+            this.subscriber = new VantiqSubscriber(this, client, enablePings);
             this.subscriber.connect(new VantiqSubscriberLifecycleListener() {
                 @Override
                 public void onConnect() {

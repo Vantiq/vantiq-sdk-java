@@ -47,6 +47,7 @@ public class Vantiq {
     }
 
     private VantiqSession session;
+    private boolean enablePings = true;
 
     /**
      * Response handler that simply delegates to the given response handler.
@@ -120,10 +121,11 @@ public class Vantiq {
     }
 
     /**
-     *  Sets the server; this is used if the app has remembered an old server and wants to re-use it. (It
-     *  could also be used to "un-authenticate", setting the server to null.
+     * Sets the server; this is used if the app has remembered an old server
+     * and wants to re-use it. (It could also be used to "un-authenticate",
+     * setting the server to null.
      *
-     *  @param server The server to be used to avoid calling "authenticate"
+     * @param server The server to be used to avoid calling "authenticate"
      */
     public void setServer(String server) {
         this.session.setServer(server);
@@ -141,15 +143,35 @@ public class Vantiq {
     }
 
     /**
-     *  Sets the username; this is used if the app has remembered an old username and wants to re-use it. (It
-     *  could also be used to "un-authenticate", setting the username to null.
+     * Sets the username; this is used if the app has remembered an old username and
+     * wants to re-use it. (It could also be used to "un-authenticate", setting the
+     * username to null.
      *
-     *  @param username The username to be used to avoid calling "authenticate"
+     * @param username The username to be used to avoid calling "authenticate"
      */
     public void setUsername(String username) {
         this.session.setUsername(username);
     }
 
+    /**
+     * Returns if pinging should be enabled on the websockets for subscriptions
+     * to ensure the connection is kept open.  By default, pinging is enabled.
+     *
+     * @return Indicates this client should send periodic pings to the server
+     */
+    public boolean isEnablePings() {
+        return this.enablePings;
+    }
+
+    /**
+     * Sets if pinging should be enabled on the websockets for subscriptions
+     * to ensure the connection is kept open.  By default, pinging is enabled.
+     *
+     * @param enablePings True indicates this client should send periodic pings to the server
+     */
+    public void setEnablePings(boolean enablePings) {
+        this.enablePings = enablePings;
+    }
 
     /**
      * Authenticates this Vantiq instance using the given credentials asynchronously.  The response
@@ -972,7 +994,7 @@ public class Vantiq {
             throw new IllegalArgumentException("Only 'topics', 'sources' and 'types' support subscribe");
         }
 
-        this.session.subscribe(path, callback);
+        this.session.subscribe(path, callback, this.enablePings);
     }
 
     /**

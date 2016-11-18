@@ -8,7 +8,6 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;

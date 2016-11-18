@@ -9,27 +9,38 @@ import okhttp3.ws.WebSocketListener;
 import okio.Buffer;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.*;
 
 /**
  * Internal class that manages subscriptions to a Vantiq server.
  */
 public class VantiqSubscriber implements WebSocketListener {
 
-    private VantiqSession          session = null;
-    private OkHttpClient            client = null;
-    private WebSocket            webSocket = null;
+    private VantiqSession                              session = null;
+    private OkHttpClient                                client = null;
+    private WebSocket                                webSocket = null;
     private VantiqSubscriberLifecycleListener lifecycleHandler = null;
+    private boolean                                enablePings = false;
+    private ScheduledExecutorService         scheduledExecutor = null;
+    private ScheduledFuture                       pingerHandle = null;
 
-    private boolean wsauthenticated = false;
+    private boolean                            wsauthenticated = false;
 
-    private Map<String,SubscriptionCallback> callbacks = new HashMap<String,SubscriptionCallback>();
-    private Map<String,Boolean> subscribed = new HashMap<String,Boolean>();
+    private Map<String,SubscriptionCallback>         callbacks = new HashMap<String,SubscriptionCallback>();
+    private Map<String,Boolean>                     subscribed = new HashMap<String,Boolean>();
 
-    public VantiqSubscriber(VantiqSession session, OkHttpClient client) {
-        this.session = session;
-        this.client  = client;
+    public VantiqSubscriber(VantiqSession session, OkHttpClient client, boolean enablePings) {
+        this.session     = session;
+        this.client      = client;
+        this.enablePings = enablePings;
+
+        if(this.enablePings) {
+            this.scheduledExecutor = Executors.newScheduledThreadPool(1);
+        }
     }
 
     public void connect(VantiqSubscriberLifecycleListener lifecycleHandler) {
@@ -113,6 +124,33 @@ public class VantiqSubscriber implements WebSocketListener {
     // WebSocketListener API
     //--------------------------------------------------------------------------
 
+    private class WebSockerPinger implements Runnable {
+
+        @Override
+        public void run() {
+            VantiqSubscriber subscriber = VantiqSubscriber.this;
+            try {
+                if(subscriber.webSocket != null) {
+                    Buffer payload = new Buffer();
+                    payload.writeString("Vantiq-Ping", StandardCharsets.ISO_8859_1);
+                    subscriber.webSocket.sendPing(payload);
+                } else {
+                    subscriber.pingerHandle.cancel(true);
+                    subscriber.pingerHandle = null;
+                }
+            } catch(Exception ex) {
+                subscriber.lifecycleHandler.onFailure(ex);
+            }
+        }
+
+    }
+
+    public void startPeriodicPings() {
+        WebSockerPinger pinger = new WebSockerPinger();
+        this.pingerHandle =
+            this.scheduledExecutor.scheduleAtFixedRate(pinger, 0, 30, TimeUnit.SECONDS);
+    }
+
     @Override
     public void onOpen(WebSocket webSocket, Response response) {
         this.webSocket = webSocket;
@@ -125,6 +163,14 @@ public class VantiqSubscriber implements WebSocketListener {
                 new ValidateAuthenticationRequest(this.session.getAccessToken());
             String body = VantiqSession.gson.toJson(request);
             this.webSocket.sendMessage(RequestBody.create(WebSocket.TEXT, body));
+
+            //
+            // Once connected, we start pinging if requested.  Pinging will continue
+            // until the websocket is closed.
+            //
+            if(this.enablePings) {
+                startPeriodicPings();
+            }
         } catch(IOException ex) {
             this.lifecycleHandler.onFailure(ex);
         }

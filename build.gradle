@@ -4,19 +4,21 @@ buildscript {
     }
     dependencies {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1+'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.4'
     }
 }
 
 apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 //
 // Project Settings
 //
 group            = 'io.vantiq'
 archivesBaseName = 'vantiq-sdk'
-version          = '1.0.10'
+version          = '1.0.11'
 
 allprojects {
     sourceCompatibility = 1.7
@@ -37,7 +39,6 @@ dependencies {
     testCompile 'com.squareup.okhttp3:mockwebserver:3.4.1'
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-library:1.3'
-    testCompile 'jline:jline:2.12'
 }
 
 test {
@@ -53,6 +54,12 @@ task intgTest(type:Test) {
     useJUnit {
         includeCategories 'io.vantiq.client.intg.IntegrationTests'
     }
+}
+
+shadowJar {
+    classifier = 'tests'
+    from sourceSets.test.output
+    configurations = [project.configurations.testRuntime]
 }
 
 //
