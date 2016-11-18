@@ -39,31 +39,26 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
 ### API
 
 * [io.vantiq.client.Vantiq](#user-content-vantiq)
-    * [authenticate](#user-content-vantiq-authenticate)
-    * [select](#user-content-vantiq-select)
-    * [selectOne](#user-content-vantiq-selectOne)
-    * [count](#user-content-vantiq-count)
-    * [insert](#user-content-vantiq-insert)
-    * [update](#user-content-vantiq-update)
-    * [upsert](#user-content-vantiq-upsert)
-    * [delete](#user-content-vantiq-delete)
-    * [deleteOne](#user-content-vantiq-deleteOne)
-    * [publish](#user-content-vantiq-publish)
-    * [execute](#user-content-vantiq-execute)
-    * [evaluate](#user-content-vantiq-evaluate)
-    * [query](#user-content-vantiq-query)
-    * [subscribe](#user-content-vantiq-subscribe)
-    * [unsubscribeAll](#user-content-vantiq-unsubscribeAll)
-    * [upload](#user-content-vantiq-upload)
-    * [download](#user-content-vantiq-download)
-    * [setAccessToken](#user-content-vantiq-setAccessToken)
-    * [getAccessToken](#user-content-vantiq-getAccessToken)
-    * [setServer](#user-content-vantiq-setServer)
-    * [getServer](#user-content-vantiq-getServer)
-    * [setUsername](#user-content-vantiq-setUsername)
-    * [getUsername](#user-content-vantiq-getUsername)
-    * [setEnablePings](#user-content-vantiq-setEnablePings)
-    * [isEnablePings](#user-content-vantiq-isEnablePings)
+
+#### Methods
+
+* [authenticate](#user-content-vantiq-authenticate)
+* [select](#user-content-vantiq-select)
+* [selectOne](#user-content-vantiq-selectOne)
+* [count](#user-content-vantiq-count)
+* [insert](#user-content-vantiq-insert)
+* [update](#user-content-vantiq-update)
+* [upsert](#user-content-vantiq-upsert)
+* [delete](#user-content-vantiq-delete)
+* [deleteOne](#user-content-vantiq-deleteOne)
+* [publish](#user-content-vantiq-publish)
+* [execute](#user-content-vantiq-execute)
+* [evaluate](#user-content-vantiq-evaluate)
+* [query](#user-content-vantiq-query)
+* [subscribe](#user-content-vantiq-subscribe)
+* [unsubscribeAll](#user-content-vantiq-unsubscribeAll)
+* [upload](#user-content-vantiq-upload)
+* [download](#user-content-vantiq-download)
 
 All Vantiq SDK methods have both an asynchronous form and a
 synchronous form.  The asynchronous form requires a response
@@ -82,6 +77,15 @@ value,
 VantiqResponse response = vantiq.method(arg1, arg2, ...);
 ```
 
+#### Properties
+
+* [accessToken](#user-content-vantiq-accessToken)
+* [server](#user-content-vantiq-server)
+* [username](#user-content-vantiq-username)
+* [enablePings](#user-content-vantiq-enablePings)
+* [readTimeout](#user-content-vantiq-readTimeout)
+* [writeTimeout](#user-content-vantiq-writeTimeout)
+* [connectTimeout](#user-content-vantiq-connectTimeout)
 
 ### Responses
 
@@ -1129,10 +1133,14 @@ while((int len = source.read(buf)) != -1) {
 os.close();
 ```
 
-## <a id="vantiq-setAccessToken"></a> Vantiq.setAccessToken
 
-The `setAccessToken` method provides a means for explicitly
-setting an access token without the `authentication` method.
+
+
+## <a id="vantiq-accessToken"></a> Vantiq.accessToken [String]
+
+The `accessToken` property provides access to the 
+access token and a means for explicitly
+setting an access token without the `authenticate` method.
 The token may be a token previously retrieved through the
 `authenticate` method or a long-lived token issued by the
 Vantiq server.
@@ -1140,248 +1148,45 @@ Vantiq server.
 After setting the access token, the SDK assumes that the
 session has been authenticated and operations can be issued.
 
-### Signature
+## <a id="vantiq-server"></a> Vantiq.server [String]
 
-```java
-void vantiq.setAccessToken(String accessToken)
-```
-
-### Parameters
-
-Name | Type | Required | Description
-:--: | :--: | :------:| -----------
-accessToken | String | Yes | A valid access token used to provide access to the Vantiq server
-
-### Returns
-
-N/A
-
-### Example
-
-```java
-vantiq.setAccessToken("KJ7J5D3Gy0nXf0dK08HZIlZJXBwc3CbgpzrBdKPhfYo=");
-```
-
-## <a id="vantiq-getAccessToken"></a> Vantiq.getAccessToken
-
-The `getAccessToken` method returns the access token that 
-is currently used by the SDK.  Typically, the access token
-is set by the Vantiq server response to the `authenticate`
-call.
-
-### Signature
-
-```java
-String vantiq.getAccessToken()
-```
-
-### Parameters
-
-N/A
-
-### Returns
-
-The current access token used for requests to the Vantiq server.  If not
-yet authenticated, then this may return `null`.
-
-### Example
-
-```java
-String accessToken = vantiq.getAccessToken();
-```
-
-
-
-
-
-
-
-
-
-## <a id="vantiq-setServer"></a> Vantiq.setServer
-
-The `setServer` method provides a means for explicitly
-setting the server URL after the Vantiq object has been instantiated.
+The server URL used to connect to the Vantiq system.
 
 After setting the server, the SDK uses the URL for all future requests.
 
-### Signature
+## <a id="vantiq-username"></a> Vantiq.username [String]
 
-```java
-void vantiq.setServer(String server)
-```
+The username associated with the authenticated user in Vantiq.
+The `authenticate` method sets this upon success.
 
-### Parameters
+## <a id="vantiq-enablePings"></a> Vantiq.enablePings [Boolean]
 
-Name | Type | Required | Description
-:--: | :--: | :------:| -----------
-server | String | Yes | A valid server URL which points to a Vantiq server
+The `enablePings` property determines if periodic pings should
+be sent on the WebSocket subscriptions.  This may be required
+as some proxy servers will close connections if they are idle.
 
-### Returns
+The default value is _true_.
 
-N/A
+## <a id="vantiq-readTimeout"></a> Vantiq.readTimeout [Long]
 
-### Example
+The `readTimeout` property determines the timeout for waiting
+for data.  A value of zero means there is no timeout.
 
-```java
-vantiq.setServer("https://api.vantiq.com");
-```
+The default value is _0_.
 
-## <a id="vantiq-getServer"></a> Vantiq.getServer
+## <a id="vantiq-writeTimeout"></a> Vantiq.writeTimeout [Long]
 
-The `getServer` method returns the server that 
-is currently used by the SDK.  
+The `writeTimeout` property determines the timeout while writing
+data.  A value of zero means there is no timeout.
 
-### Signature
+The default value is _0_.
 
-```java
-String vantiq.getServer()
-```
+## <a id="vantiq-connectTimeout"></a> Vantiq.connectTimeout [Long]
 
-### Parameters
+The `connectTimeout` property determines the timeout to establish
+a connection.  A value of zero means there is no timeout.
 
-N/A
-
-### Returns
-
-The current server used for requests to the Vantiq server.  
-
-### Example
-
-```java
-String server = vantiq.getServer();
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## <a id="vantiq-setUsername"></a> Vantiq.setUsername
-
-The `setUsername` method provides a means for explicitly
-setting the username after the Vantiq object has been instantiated.
-
-
-### Signature
-
-```java
-void vantiq.setUsername(String username)
-```
-
-### Parameters
-
-Name | Type | Required | Description
-:--: | :--: | :------:| -----------
-username | String | Yes | A valid username 
-
-### Returns
-
-N/A
-
-### Example
-
-```java
-vantiq.setUsername("myuser@gmail.com");
-```
-
-## <a id="vantiq-getUsername"></a> Vantiq.getUsername
-
-The `getUsername` method returns the username that 
-is currently used by the SDK.  
-
-### Signature
-
-```java
-String vantiq.getUsername()
-```
-
-### Parameters
-
-N/A
-
-### Returns
-
-The current username used for requests to the Vantiq username.  
-
-### Example
-
-```java
-String username = vantiq.getUsername();
-```
-
-
-
-
-## <a id="vantiq-setEnablePings"></a> Vantiq.setEnablePings
-
-The `setEnablePings` method configures the Vantiq client to periodically
-send _ping_ messages to the server when using WebSockets.  This may be required
-as some proxy servers will close connections if they are idle.  The default
-is _true_.
-
-### Signature
-
-```java
-void vantiq.setEnablePings(boolean enablePings)
-```
-
-### Parameters
-
-Name | Type | Required | Description
-:--: | :--: | :------:| -----------
-enablePings | Boolean | Yes | True means to periodicially send ping messages 
-
-### Returns
-
-N/A
-
-### Example
-
-```java
-vantiq.setEnablePings(true);
-```
-
-## <a id="vantiq-isEnablePings"></a> Vantiq.isEnablePings
-
-Returns if the Vantiq client will periodically
-send _ping_ messages to the server when using WebSockets.  This may be required
-as some proxy servers will close connections if they are idle.  The default
-is _true_.
-
-### Signature
-
-```java
-boolean vantiq.isEnablePings()
-```
-
-### Parameters
-
-N/A
-
-### Returns
-
-True if pinging is enabled.
-
-### Example
-
-```java
-boolean enablePings = vantiq.isEnablePings();
-```
-
-
-
-
+The default value is _0_.
 
 
 

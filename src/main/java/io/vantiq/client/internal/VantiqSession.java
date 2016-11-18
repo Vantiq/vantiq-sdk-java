@@ -32,17 +32,17 @@ public class VantiqSession {
 
     public final static int DEFAULT_API_VERSION = 1;
 
-    private final OkHttpClient client =
-        new OkHttpClient.Builder()
-            .readTimeout(0, TimeUnit.SECONDS)
-            .writeTimeout(0, TimeUnit.SECONDS)
-            .build();
+    private OkHttpClient client = null;
 
     private String   server;
     private int      apiVersion;
     private boolean  authenticated;
     private String   accessToken;
     private String   username;
+
+    private long readTimeout = 0;
+    private long writeTimeout = 0;
+    private long connectTimeout = 0;
 
     private VantiqSubscriber subscriber;
 
@@ -54,6 +54,15 @@ public class VantiqSession {
         super();
         this.server     = server;
         this.apiVersion = apiVersion;
+        createClient();
+    }
+
+    private void createClient() {
+        this.client = new OkHttpClient.Builder()
+            .readTimeout(this.readTimeout, TimeUnit.MILLISECONDS)
+            .writeTimeout(this.writeTimeout, TimeUnit.MILLISECONDS)
+            .connectTimeout(this.connectTimeout, TimeUnit.MILLISECONDS)
+            .build();
     }
 
     /**
@@ -88,22 +97,34 @@ public class VantiqSession {
         return this.accessToken;
     }
 
-
+    /**
+     * Returns the user associated with the connection
+     *
+     * @return The username
+     */
     public String getUsername() {
         return this.username;
     }
 
-    public void setUsername(String username)
-    {
+    /**
+     * Sets the user associated with the connection.
+     *
+     * @param username The username
+     */
+    public void setUsername(String username) {
         this.username = username;
     }
 
+    /**
+     * Sets the server URL of the Vantiq system.
+     *
+     * @param server The server URL
+     */
     public void setServer(String server) {
         this.server = server;
     }
 
-
-    /*
+    /**
      * Returns the server URL of the Vantiq system.
      *
      * @return The server URL
@@ -119,6 +140,63 @@ public class VantiqSession {
      */
     public int getApiVersion() {
         return this.apiVersion;
+    }
+
+    /**
+     * Sets the read timeout for the connection
+     *
+     * @param timeout The timeout duration in milliseconds
+     */
+    public void setReadTimeout(long timeout) {
+        this.readTimeout = timeout;
+        createClient();
+    }
+
+    /**
+     * Returns the read timeout for the connection
+     *
+     * @return The timeout duration in milliseconds
+     */
+    public long getReadTimeout() {
+        return this.readTimeout;
+    }
+
+    /**
+     * Sets the write timeout for the connection
+     *
+     * @param timeout The timeout duration in milliseconds
+     */
+    public void setWriteTimeout(long timeout) {
+        this.writeTimeout = timeout;
+        createClient();
+    }
+
+    /**
+     * Returns the write timeout for the connection
+     *
+     * @return The timeout duration in milliseconds
+     */
+    public long getWriteTimeout() {
+        return this.writeTimeout;
+    }
+
+    /**
+     * Sets the connect timeout for the connection
+     *
+     * @param timeout The timeout duration in milliseconds
+     */
+    public void setConnectTimeout(long timeout) {
+        this.connectTimeout = timeout;
+        createClient();
+    }
+
+    /**
+     * Gets the connect timeout for the connection
+     *
+     * @return The timeout duration in milliseconds
+     */
+    public long getConnectTimeout() {
+        return this.connectTimeout;
     }
 
     /**
@@ -245,6 +323,7 @@ public class VantiqSession {
             if (jsonBody != null && jsonBody.isJsonObject()) {
                 JsonElement token = ((JsonObject) jsonBody).get("accessToken");
                 if (token != null) {
+                    this.username = username;
                     this.accessToken = token.getAsString();
                     this.authenticated = true;
                 }

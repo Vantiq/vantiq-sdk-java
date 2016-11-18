@@ -8,6 +8,7 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Vantiq SDK for Java/Android API
@@ -1028,5 +1029,57 @@ public class Vantiq {
         return this.session.getAccessToken();
     }
 
+    /**
+     * Sets the read timeout for the connection
+     *
+     * @param timeout The timeout duration in milliseconds
+     */
+    public void setReadTimeout(long timeout) {
+        this.session.setReadTimeout(timeout);
+    }
 
+    /**
+     * Returns the read timeout for the connection
+     *
+     * @return The timeout duration in milliseconds
+     */
+    public long getReadTimeout() {
+        return this.session.getReadTimeout();
+    }
+
+    /**
+     * Sets the write timeout for the connection
+     *
+     * @param timeout The timeout duration in milliseconds
+     */
+    public void setWriteTimeout(long timeout) {
+        this.session.setWriteTimeout(timeout);
+    }
+
+    /**
+     * Returns the write timeout for the connection
+     *
+     * @return The timeout duration in milliseconds
+     */
+    public long getWriteTimeout() {
+        return this.session.getWriteTimeout();
+    }
+
+    /**
+     * Sets the connect timeout for the connection
+     *
+     * @param timeout The timeout duration in milliseconds
+     */
+    public void setConnectTimeout(long timeout) {
+        this.session.setConnectTimeout(timeout);
+    }
+
+    /**
+     * Gets the connect timeout for the connection
+     *
+     * @return The timeout duration in milliseconds
+     */
+    public long getConnectTimeout() {
+        return this.session.getConnectTimeout();
+    }
 }

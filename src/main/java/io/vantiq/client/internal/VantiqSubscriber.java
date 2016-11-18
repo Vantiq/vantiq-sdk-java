@@ -96,6 +96,10 @@ public class VantiqSubscriber implements WebSocketListener {
     }
 
     public void close() {
+        if(this.scheduledExecutor != null) {
+            this.scheduledExecutor.shutdown();
+            this.scheduledExecutor = null;
+        }
         if(this.webSocket != null) {
             try {
                 this.webSocket.close(1000, null);
@@ -146,9 +150,9 @@ public class VantiqSubscriber implements WebSocketListener {
     }
 
     public void startPeriodicPings() {
-        WebSockerPinger pinger = new WebSockerPinger();
         this.pingerHandle =
-            this.scheduledExecutor.scheduleAtFixedRate(pinger, 0, 30, TimeUnit.SECONDS);
+            this.scheduledExecutor.scheduleAtFixedRate(new WebSockerPinger(),
+                                                       0, 30, TimeUnit.SECONDS);
     }
 
     @Override
