@@ -5,7 +5,7 @@
 
 # Vantiq SDK for Java
 
-The [Vantiq](http://www.vantiq.com) Java SDK is a Java library that provides an API into a Vantiq system for Android and standalone Java applications.  The SDK connects to a Vantiq system using the [Vantiq REST API](https://dev.vantiq.com/docs/api/developer.html#api-reference-guide).
+The [Vantiq](http://www.vantiq.com) Java SDK is a Java library that provides an API into a Vantiq system for Android and standalone Java applications.  The SDK connects to a Vantiq system using the [Vantiq REST API](https://dev.vantiq.com/docs/system/api/index.html).
 
 ## Installation
 
@@ -21,7 +21,7 @@ In Gradle,
     }
     
     dependencies {
-        compile 'io.vantiq:vantiq-sdk:1.0.12'
+        compile 'io.vantiq:vantiq-sdk:1.0.13'
     }
 
 In Maven,
@@ -37,7 +37,7 @@ In Maven,
         <dependency>
             <groupId>io.vantiq</groupId>
             <artifactId>vantiq-sdk</artifactId>
-            <version>1.0.12</version>
+            <version>1.0.13</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>    

@@ -3,7 +3,7 @@
 The Vantiq API provide an API for interacting with the Vantiq server.  Each
 API returns a [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) that provides the results or errors from the API call.
 
-This document defines the Vantiq Client SDK.  Please refer to the [Vantiq Reference Guides](https://dev.vantiq.com/docs/api/developer.html) for details on the how to use the Vantiq system.
+This document defines the Vantiq Client SDK.  Please refer to the [Vantiq Reference Guides](https://dev.vantiq.com/docs/system/index.html) for details on the how to use the Vantiq system.
 
 ## Vantiq API
 
@@ -103,7 +103,7 @@ The SDK expects that the first operation is to authenticate onto the
 specified Vantiq server.  After successfully authenticated, the client
 is free to issue any requests to the Vantiq server.
 
-This class exposes the [Vantiq RESTful API](https://dev.vantiq.com/docs/api/developer.html#api-reference-guide)
+This class exposes the [Vantiq REST API](https://dev.vantiq.com/docs/system/api/index.html)
 
 ### Signature
 
@@ -206,7 +206,7 @@ handler | ResponseHandler | Yes | Listener that is called upon success or failur
 
 The `props` is an list of property names indciating which properties should be returned.
     
-The `where` is an object with supported operations defined in [API operations](https://dev.vantiq.com/docs/api/developer.html#api-operations) that will be converted to JSON using [Gson](https://github.com/google/gson).
+The `where` is an object with supported operations defined in [API operations](https://dev.vantiq.com/docs/system/api/index.html#where-parameter) that will be converted to JSON using [Gson](https://github.com/google/gson).
 
 The `sort` is a `SortSpec` object that indicate the property to sort by and the direction of the sort (i.e. ascending or descending).
 
@@ -350,7 +350,7 @@ resource | String | Yes | The resource to query
 where | Object | No | Specifies constraints to filter the data.  Null means all records will be returned.
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
-The `where` is an object with supported operations defined in [API operations](https://dev.vantiq.com/docs/api/developer.html#api-operations) that will be converted to JSON using [Gson](https://github.com/google/gson).
+The `where` is an object with supported operations defined in [API operations](https://dev.vantiq.com/docs/system/api/index.html#where-parameter) that will be converted to JSON using [Gson](https://github.com/google/gson).
 
 ### Returns
 
@@ -546,7 +546,7 @@ resource | String | Yes | The resource to remove
 where | Object | Yes | Specifies which records to remove.  This is converted to JSON using Gson.
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
-The `where` is an object with supported operations defined in [API operations](https://dev.vantiq.com/docs/api/developer.html#api-operations) that will be converted to JSON using [Gson](https://github.com/google/gson).
+The `where` is an object with supported operations defined in [API operations](https://dev.vantiq.com/docs/system/api/index.html#where-parameter) that will be converted to JSON using [Gson](https://github.com/google/gson).
 
 ### Returns
 
@@ -673,7 +673,7 @@ handler | ResponseHandler | Yes | Listener that is called upon success or failur
 
 For sources, the parameters required are source specific and are the same as those required
 when performing a `PUBLISH ... TO SOURCE ... USING params`.  Please refer to the specific source definition
-documentation in the [Vantiq API Documentation](https://dev.vantiq.com/docs/api/index.html).
+documentation in the [Vantiq API Documentation](https://dev.vantiq.com/docs/system/api/index.html).
 
 ### Returns
 
@@ -858,7 +858,7 @@ handler | ResponseHandler | Yes | Listener that is called upon success or failur
 
 The parameters required are source specific and are the same as those required
 when performing a `SELECT ... FROM SOURCE ... WITH params`.  Please refer to the specific source definition
-documentation in the [Vantiq API Documentation](https://dev.vantiq.com/docs/api/index.html).
+documentation in the [Vantiq API Documentation](https://dev.vantiq.com/docs/system/api/index.html).
 
 ### Returns
 

@@ -216,7 +216,7 @@ public class Vantiq {
      * @param propSpecs The optional list of properties to return in each record.  A null or empty list returns all properties.
      * @param where The optional where constraint that filters the records returned.  The where is structured
      *              following the structure outline in the
-     *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     *              <a href="https://dev.vantiq.com/docs/system/api/index.html">API Documentation</a>.
      * @param sortSpec The optional sort specification to order the returned records.
      * @param responseHandler The response handler that is called upon completion.
      */
@@ -311,7 +311,7 @@ public class Vantiq {
      * @param propSpecs The optional list of properties to return in each record.  A null or empty list returns all properties.
      * @param where The optional where constraint that filters the records returned.  The where is structured
      *              following the structure outline in the
-     *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     *              <a href="https://dev.vantiq.com/docs/system/api/index.html">API Documentation</a>.
      * @param sortSpec The optional sort specification to order the returned records.
      * @return The response from the Vantiq server
      */
@@ -387,7 +387,7 @@ public class Vantiq {
      *                 a user-defined type name.
      * @param where The optional where constraint that filters the records returned.  The where is structured
      *              following the structure outline in the
-     *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     *              <a href="https://dev.vantiq.com/docs/system/api/index.html">API Documentation</a>.
      * @param responseHandler The response handler that is called upon completion.  If null,
      *                        then the call is performed synchronously and the response is
      *                        provided as the returned value.
@@ -432,7 +432,7 @@ public class Vantiq {
      *                 a user-defined type name.
      * @param where The optional where constraint that filters the records returned.  The where is structured
      *              following the structure outline in the
-     *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     *              <a href="https://dev.vantiq.com/docs/system/api/index.html">API Documentation</a>.
      * @return The response from the Vantiq server
      */
     public VantiqResponse count(String resource, Object where) {
@@ -596,7 +596,7 @@ public class Vantiq {
      *                 a user-defined type name.
      * @param where The required where constraint that filters the records returned.  The where is structured
      *              following the structure outline in the
-     *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     *              <a href="https://dev.vantiq.com/docs/system/api/index.html">API Documentation</a>.
      * @param responseHandler The response handler that is called upon completion.
      */
     public void delete(String resource,
@@ -626,7 +626,7 @@ public class Vantiq {
      *                 a user-defined type name.
      * @param where The required where constraint that filters the records returned.  The where is structured
      *              following the structure outline in the
-     *              <a href="https://dev.vantiq.com/docs/api/developer.html#api-operations">API Documentation</a>.
+     *              <a href="https://dev.vantiq.com/docs/system/api/index.html">API Documentation</a>.
      * @return The response from the Vantiq server
      */
     public VantiqResponse delete(String resource,
@@ -693,7 +693,7 @@ public class Vantiq {
      * For sources, the parameters required are source specific and are the same as those required when
      * performing a <code>PUBLISH ... TO SOURCE ... USING</code> params.
      * Please refer to the specific source definition documentation in the
-     * <a href="https://dev.vantiq.com/docs/api/index.html">Vantiq API Documentation</a>.
+     * <a href="https://dev.vantiq.com/docs/system/sources/source/index.html">Vantiq API Documentation</a>.
      *
      * @param resource The resource to query.  This must be the value of either
      *                 {@link Vantiq.SystemResources#TOPICS} or {@link Vantiq.SystemResources#SOURCES}.
@@ -727,7 +727,7 @@ public class Vantiq {
      * For sources, the parameters required are source specific and are the same as those required when
      * performing a <code>PUBLISH ... TO SOURCE ... USING</code> params.
      * Please refer to the specific source definition documentation in the
-     * <a href="https://dev.vantiq.com/docs/api/index.html">Vantiq API Documentation</a>.
+     * <a href="https://dev.vantiq.com/docs/system/sources/source/index.html">Vantiq API Documentation</a>.
      *
      * @param resource The resource to query.  This must be the value of either
      *                 {@link Vantiq.SystemResources#TOPICS} or {@link Vantiq.SystemResources#SOURCES}.
@@ -823,7 +823,7 @@ public class Vantiq {
      * The parameters required are source specific and are the same as those required when performing
      * a <code>SELECT ... FROM SOURCE ... WITH</code> params. Please refer to the specific source
      * definition documentation in the
-     * <a href="https://dev.vantiq.com/docs/api/index.html">Vantiq API Documentation</a>.
+     * <a href="https://dev.vantiq.com/docs/system/sources/source/index.html">Vantiq API Documentation</a>.
      *
      * @param source The name of the source to query.
      * @param params The arguments for the query operation.  The params is converted to JSON using Gson.
@@ -843,7 +843,7 @@ public class Vantiq {
      * The parameters required are source specific and are the same as those required when performing
      * a <code>SELECT ... FROM SOURCE ... WITH</code> params. Please refer to the specific source
      * definition documentation in the
-     * <a href="https://dev.vantiq.com/docs/api/index.html">Vantiq API Documentation</a>.
+     * <a href="https://dev.vantiq.com/docs/system/sources/source/index.html">Vantiq API Documentation</a>.
      *
      * @param source The name of the source to query.
      * @param params The arguments for the query operation.  The params is converted to JSON using Gson.
