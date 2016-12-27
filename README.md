@@ -53,7 +53,7 @@ The first step is to create an instance of the Vantiq SDK providing the URL of t
 ```java
 String server = "https://dev.vantiq.com";
 
-Vantiq vantiq = new io.vantiq.Vantiq(server);
+Vantiq vantiq = new io.vantiq.client.Vantiq(server);
 ```
 
 where `server` is the full URL for the Vantiq server to connect to, such as *https://dev.vantiq.com/*.  An optional second argument is the version of the API to connect to.  If not specified, this defaults to the latest version, currently *1*.  At this point, the *Vantiq* instance has not yet connected to the server.  To establish a connection to the server, use the `authenticate` method, e.g.,
