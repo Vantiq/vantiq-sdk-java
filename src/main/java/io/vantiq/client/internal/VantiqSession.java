@@ -11,6 +11,7 @@ import io.vantiq.client.SubscriptionCallback;
 import io.vantiq.client.VantiqError;
 import io.vantiq.client.VantiqResponse;
 import okhttp3.*;
+import okio.ByteString;
 import okio.Timeout;
 
 import java.io.File;
@@ -316,8 +317,16 @@ public class VantiqSession {
             };
         }
 
-        VantiqResponse response = this.request(Credentials.basic(username, password), "GET", "authenticate",
-                                               null, null, false, cb);
+        //
+        //  The builtin Credentials.basic method from the okhttp library doesn't support anything but
+        //  Latin username and password. Do it manually instead to support multibyte. (See #887)
+        //
+        String usernameAndPassword = username + ":" + password;
+        String encoded = "Basic " + ByteString.encodeUtf8(usernameAndPassword).base64();
+        
+        VantiqResponse response = this.request(encoded, "GET", "authenticate",
+                null, null, false, cb);
+        
         if(response != null) {
             JsonElement jsonBody = (JsonElement) response.getBody();
             if (jsonBody != null && jsonBody.isJsonObject()) {
