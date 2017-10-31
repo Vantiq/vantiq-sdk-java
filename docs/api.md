@@ -1,7 +1,6 @@
 # API Reference
 
-The Vantiq API provide an API for interacting with the Vantiq server.  Each
-API returns a [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) that provides the results or errors from the API call.
+The Vantiq API provides an API for interacting with the Vantiq server.
 
 This document defines the Vantiq Client SDK.  Please refer to the [Vantiq Reference Guides](https://dev.vantiq.com/docs/system/index.html) for details on the how to use the Vantiq system.
 
