@@ -109,7 +109,7 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
-        assertThat("Valid path", request.getPath(), is("/api/v1/resources/MyType/abc123"));
+        assertThat("Valid path", request.getPath(), is("/api/v1/resources/custom/MyType/abc123"));
 
         // Check response
         assertTrue("Successful response", response.isSuccess());
@@ -185,7 +185,7 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
-        assertThat("Valid path", request.getPath(), is("/api/v1/resources/MyType"));
+        assertThat("Valid path", request.getPath(), is("/api/v1/resources/custom/MyType"));
 
         JsonObject reqObj = gson.fromJson(readAll(request.getBody()), JsonObject.class);
         assertThat("Valid request body", reqObj.get("a").getAsInt(),    is(1));
@@ -217,7 +217,7 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
 
         // We first check the request
         RecordedRequest request = server.takeRequest();
-        assertThat("Valid path", request.getPath(), is("/api/v1/resources/MyType/12345"));
+        assertThat("Valid path", request.getPath(), is("/api/v1/resources/custom/MyType/12345"));
 
         JsonObject reqObj = gson.fromJson(readAll(request.getBody()), JsonObject.class);
         assertThat("Valid request body", reqObj.get("a").getAsInt(),    is(1));
@@ -249,7 +249,7 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
         // We first check the request
         RecordedRequest request = server.takeRequest();
         HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
-        assertThat("Valid path",       url.encodedPath(),            is("/api/v1/resources/MyType"));
+        assertThat("Valid path",       url.encodedPath(),            is("/api/v1/resources/custom/MyType"));
         assertThat("Upsert parameter", url.queryParameter("upsert"), is("true"));
 
         JsonObject reqObj = gson.fromJson(readAll(request.getBody()), JsonObject.class);
@@ -276,7 +276,7 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
         // We first check the request
         RecordedRequest request = server.takeRequest();
         HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
-        assertThat("Valid path",      url.encodedPath(),           is("/api/v1/resources/MyType"));
+        assertThat("Valid path",      url.encodedPath(),           is("/api/v1/resources/custom/MyType"));
         assertThat("Count parameter", url.queryParameter("count"), is("true"));
 
         // Check response
@@ -294,7 +294,7 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
         // We first check the request
         RecordedRequest request = server.takeRequest();
         HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
-        assertThat("Valid path",      url.encodedPath(),           is("/api/v1/resources/MyType/12345"));
+        assertThat("Valid path",      url.encodedPath(),           is("/api/v1/resources/custom/MyType/12345"));
 
         // Check response
         assertTrue("Successful response", response.isSuccess());

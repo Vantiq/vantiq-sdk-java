@@ -207,6 +207,29 @@ public class Vantiq {
         return response;
     }
 
+    public String buildPath(String qualifiedName, String id)
+    {
+        String path;
+        
+        if (qualifiedName.startsWith("system."))
+        {
+            String systemResourceName = qualifiedName.substring(7);
+
+            path = "/resources/" + systemResourceName;
+        }
+        else
+        {
+            path = "/resources/custom/" + qualifiedName;
+        }
+
+        if (id != null)
+        {
+            path += "/" + id;
+        }
+       
+        return path;
+    }
+    
     /**
      * Performs a query to search for records that match the given constraints asynchronously.
      * The response body will be a List of JsonObject objects.
@@ -225,7 +248,7 @@ public class Vantiq {
                        Object where,
                        SortSpec sortSpec,
                        ResponseHandler responseHandler) {
-        String path = "/resources/" + resource;
+        String path = this.buildPath(resource,null);
 
         Map<String,String> queryParams = new HashMap<String,String>();
         if(propSpecs != null) {
@@ -319,7 +342,7 @@ public class Vantiq {
                                  List<String> propSpecs,
                                  Object where,
                                  SortSpec sortSpec) {
-        String path = "/resources/" + resource;
+        String path = this.buildPath(resource,null);
 
         Map<String,String> queryParams = new HashMap<String,String>();
         if(propSpecs != null) {
@@ -360,7 +383,7 @@ public class Vantiq {
     public void selectOne(String resource,
                          String id,
                          ResponseHandler responseHandler) {
-        String path = "/resources/" + resource + "/" + id;
+        String path = this.buildPath(resource,id);
         this.session.get(path, null, responseHandler);
     }
 
@@ -375,7 +398,7 @@ public class Vantiq {
      */
     public VantiqResponse selectOne(String resource,
                                     String id) {
-        String path = "/resources/" + resource + "/" + id;
+        String path = this.buildPath(resource,id);
         return this.session.get(path, null, null);
     }
 
@@ -395,7 +418,7 @@ public class Vantiq {
     public void count(String resource,
                       Object where,
                       ResponseHandler responseHandler) {
-        String path = "/resources/" + resource;
+        String path = this.buildPath(resource,null);
 
         Map<String,String> queryParams = new HashMap<String,String>();
         queryParams.put("count", "true");
@@ -436,7 +459,7 @@ public class Vantiq {
      * @return The response from the Vantiq server
      */
     public VantiqResponse count(String resource, Object where) {
-        String path = "/resources/" + resource;
+        String path = this.buildPath(resource,null);
 
         Map<String,String> queryParams = new HashMap<String,String>();
         queryParams.put("count", "true");
@@ -469,7 +492,7 @@ public class Vantiq {
     public void insert(String resource,
                        Object object,
                        ResponseHandler responseHandler) {
-        String path = "/resources/" + resource;
+        String path = this.buildPath(resource,null);
         this.session.post(path, null, VantiqSession.gson.toJson(object), responseHandler);
     }
 
@@ -484,7 +507,7 @@ public class Vantiq {
      */
     public VantiqResponse insert(String resource,
                                  Object object) {
-        String path = "/resources/" + resource;
+        String path = this.buildPath(resource,null);
         return this.session.post(path, null, VantiqSession.gson.toJson(object), null);
     }
 
@@ -504,7 +527,7 @@ public class Vantiq {
                        String id,
                        Object object,
                        ResponseHandler responseHandler) {
-        String path = "/resources/" + resource + "/" + id;
+        String path = this.buildPath(resource,id);
         this.session.put(path, null, VantiqSession.gson.toJson(object), responseHandler);
     }
 
@@ -521,7 +544,7 @@ public class Vantiq {
     public VantiqResponse update(String resource,
                                  String id,
                                  Object object) {
-        String path = "/resources/" + resource + "/" + id;
+        String path = this.buildPath(resource,id);
         return this.session.put(path, null, VantiqSession.gson.toJson(object), null);
     }
 
@@ -542,7 +565,7 @@ public class Vantiq {
     public void upsert(String resource,
                        Object object,
                        ResponseHandler responseHandler) {
-        String path = "/resources/" + resource;
+        String path = this.buildPath(resource,null);
 
         // Mongo doesn't like us passing back the _id
         if(object instanceof JsonObject) {
@@ -572,7 +595,7 @@ public class Vantiq {
      */
     public VantiqResponse upsert(String resource,
                                  Object object) {
-        String path = "/resources/" + resource;
+        String path = this.buildPath(resource,null);
 
         // Mongo doesn't like us passing back the _id
         if(object instanceof JsonObject) {
@@ -602,7 +625,7 @@ public class Vantiq {
     public void delete(String resource,
                        Object where,
                        ResponseHandler responseHandler) {
-        String path = "/resources/" + resource;
+        String path = this.buildPath(resource,null);
 
         Map<String,String> queryParams = new HashMap<String,String>();
         queryParams.put("count", "true");
@@ -631,7 +654,7 @@ public class Vantiq {
      */
     public VantiqResponse delete(String resource,
                                  Object where) {
-        String path = "/resources/" + resource;
+        String path = this.buildPath(resource,null);
 
         Map<String,String> queryParams = new HashMap<String,String>();
         queryParams.put("count", "true");
@@ -658,7 +681,7 @@ public class Vantiq {
     public void deleteOne(String resource,
                           String id,
                           ResponseHandler responseHandler) {
-        String path = "/resources/" + resource + "/" + id;
+        String path = this.buildPath(resource,id);
         this.session.delete(path, null, new PassThruResponseHandler(responseHandler) {
             @Override
             public void onSuccess(Object body, Response response) {
@@ -678,7 +701,7 @@ public class Vantiq {
      */
     public VantiqResponse deleteOne(String resource,
                                     String id) {
-        String path = "/resources/" + resource + "/" + id;
+        String path = this.buildPath(resource,id);
         VantiqResponse response = this.session.delete(path, null, null);
         if(response != null && response.isSuccess()) {
             response.setBody(true);
