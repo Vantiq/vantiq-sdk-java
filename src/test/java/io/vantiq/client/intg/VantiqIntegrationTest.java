@@ -372,16 +372,7 @@ public class VantiqIntegrationTest {
         assertThat("Valid response", handler.getBodyAsJsonObject().get("arg1").getAsDouble(), is(3.14159));
         assertThat("Valid response", handler.getBodyAsJsonObject().get("arg2").getAsString(), is("xxx"));
     }
-
-    @Test
-    public void testEvaluateModel() throws Exception {
-        JsonObject params = new JsonObject();
-        params.addProperty("value", 4.0);
-        vantiq.evaluate("TestModel", params, handler);
-        waitForCompletion();
-
-        assertThat("Valid response", ((JsonPrimitive) handler.getBody()).getAsDouble(), is(2.0));
-    }
+    
 
     @Test
     public void testSubscribeTopic() throws Exception {

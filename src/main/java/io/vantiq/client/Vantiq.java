@@ -807,37 +807,8 @@ public class Vantiq {
         String path = "/resources/" + SystemResources.PROCEDURES.value() + "/" + procedure;
         return this.session.post(path, null, VantiqSession.gson.toJson(params), null);
     }
-
-    /**
-     * Evaluates a specific analytics model asynchronously.  An evaluation operation is request-response).
-     * The response is a JsonObject with the result of the model evaluation.
-     *
-     * @param modelName The name of the analytics model to evaluate.
-     * @param params The arguments for the model.  The parameters are passed as a JSON element
-     *               containing the required inputs as defined in the analytics model.
-     * @param responseHandler The response handler that is called upon completion.
-     */
-    public void evaluate(String modelName,
-                         Object params,
-                         ResponseHandler responseHandler) {
-        String path = "/resources/" + SystemResources.ANALYTICS_MODELS.value() + "/" + modelName;
-        this.session.post(path, null, VantiqSession.gson.toJson(params), responseHandler);
-    }
-
-    /**
-     * Evaluates a specific analytics model synchronously.  An evaluation operation is request-response).
-     * The response is a JsonObject with the result of the model evaluation.
-     *
-     * @param modelName The name of the analytics model to evaluate.
-     * @param params The arguments for the model.  The parameters are passed as a JSON element
-     *               containing the required inputs as defined in the analytics model.
-     * @return The response from the Vantiq server
-     */
-    public VantiqResponse evaluate(String modelName,
-                                   Object params) {
-        String path = "/resources/" + SystemResources.ANALYTICS_MODELS.value() + "/" + modelName;
-        return this.session.post(path, null, VantiqSession.gson.toJson(params), null);
-    }
+    
+    
 
     /**
      * Performs a query operation on the specified source asynchronously.  A query operation is
