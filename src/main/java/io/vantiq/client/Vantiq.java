@@ -207,6 +207,75 @@ public class Vantiq {
         return response;
     }
 
+    /**
+     * Revokes the given accessToken asynchronously.  The response
+     * handler "onSuccess" will return true if the authentication was successful.
+     *
+     * @param accessToken The accessToken to be revoked
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void revoke(String accessToken, ResponseHandler responseHandler) {
+        this.session.revoke(accessToken, new PassThruResponseHandler(responseHandler) {
+            @Override
+            public void onSuccess(Object body, Response response) {
+                // Simply return true as it was successful
+                this.delegate.onSuccess(true, response);
+            }
+        });
+    }
+
+    /**
+     * Revokes the given accessToken synchronously.
+     *
+     * @param accessToken The accessToken to be revoked
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse revoke(String accessToken) {
+        VantiqResponse response = this.session.revoke(accessToken, null);
+        if(response != null) {
+            response.setBody(response.isSuccess());
+        }
+        return response;
+    }
+
+
+
+
+
+    /**
+     * Refreshes the given accessToken asynchronously.  The response
+     * handler "onSuccess" will return true if the refresh was successful.
+     *
+     * @param accessToken The accessToken to be refreshed
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void refresh(String accessToken, ResponseHandler responseHandler) {
+        this.session.refresh(accessToken, new PassThruResponseHandler(responseHandler) {
+            @Override
+            public void onSuccess(Object body, Response response) {
+                // Simply return true as it was successful
+                this.delegate.onSuccess(true, response);
+            }
+        });
+    }
+
+    /**
+     * Refreshes the given accessToken synchronously.
+     *
+     * @param accessToken The accessToken to be refreshed
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse refresh(String accessToken) {
+        VantiqResponse response = this.session.refresh(accessToken, null);
+        if(response != null) {
+            response.setBody(response.isSuccess());
+        }
+        return response;
+    }
+    
+
+
+
     public String buildPath(String qualifiedName, String id)
     {
         String path;
@@ -342,6 +411,29 @@ public class Vantiq {
                                  List<String> propSpecs,
                                  Object where,
                                  SortSpec sortSpec) {
+        return this.select(resource,propSpecs,where,sortSpec,0L);
+    }
+
+    /**
+     * Returns the record for the given resource and specified id.  The response is a single JsonObject.
+     * Performs a query to search for records that match the given constraints synchronously.
+     * The response body will be a List of JsonObject objects.
+     *
+     * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
+     *                 a user-defined type name.
+     * @param propSpecs The optional list of properties to return in each record.  A null or empty list returns all properties.
+     * @param where The optional where constraint that filters the records returned.  The where is structured
+     *              following the structure outline in the
+     *              <a href="https://dev.vantiq.com/docs/system/api/index.html">API Documentation</a>.
+     * @param sortSpec The optional sort specification to order the returned records.
+     * @param limit A limit to the number of records returned (limit less then or equals to 0 means no limit)
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse select(String resource,
+                                 List<String> propSpecs,
+                                 Object where,
+                                 SortSpec sortSpec,
+                                 long limit) {
         String path = this.buildPath(resource,null);
 
         Map<String,String> queryParams = new HashMap<String,String>();
@@ -353,6 +445,12 @@ public class Vantiq {
         }
         if(sortSpec != null) {
             queryParams.put("sort", VantiqSession.gson.toJson(sortSpec.serialize()));
+        }
+        
+        if (limit > 0)
+        {
+            queryParams.put("limit", Long.toString(limit));
+            queryParams.put("count", "true");
         }
 
         VantiqResponse response = this.session.get(path, queryParams, null);
@@ -849,6 +947,35 @@ public class Vantiq {
         return this.session.post(path, null, VantiqSession.gson.toJson(params), null);
     }
 
+
+
+
+    /**
+     * Returns a JsonArray containing objects which map between "username" and "preferredUsername"
+     *
+     * @param namespace The namespace
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     */
+    public void getNamespaceUsers(String namespace,
+                          ResponseHandler responseHandler) {
+        String path = "/resources/namespaces/" + namespace + "/authorizedUsers";
+        this.session.get(path, null, responseHandler);
+    }
+
+    /**
+     * Returns a JsonArray containing objects which map between "username" and "preferredUsername"
+     *
+     * @param namespace The namespace
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse getNamespaceUsers(String namespace) {
+        String path = "/resources/namespaces/" + namespace + "/authorizedUsers";
+        return this.session.get(path, null, null);
+    }
+
+
     /**
      * Performs an upload of the given file asynchronously.  The response provides info on the
      * document uploaded.
@@ -1021,6 +1148,15 @@ public class Vantiq {
      */
     public String getAccessToken() {
         return this.session.getAccessToken();
+    }
+
+    /**
+     * Returns the current idToken.  If not authenticated, this is null.
+     *
+     * @return The idToken or null if not an authenticated session (or an old pre-OAuth Vantiq server)
+     */
+    public String getIdToken() {
+        return this.session.getIdToken();
     }
 
     /**

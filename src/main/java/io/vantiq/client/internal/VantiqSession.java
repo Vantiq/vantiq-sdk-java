@@ -1,10 +1,8 @@
 package io.vantiq.client.internal;
 
-import com.google.common.io.BaseEncoding;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import io.vantiq.client.ResponseHandler;
 import io.vantiq.client.SubscriptionCallback;
@@ -12,7 +10,6 @@ import io.vantiq.client.VantiqError;
 import io.vantiq.client.VantiqResponse;
 import okhttp3.*;
 import okio.ByteString;
-import okio.Timeout;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 public class VantiqSession {
 
     public final static MediaType APPLICATION_JSON = MediaType.parse("application/json");
+    public final static MediaType PLAIN_TEXT = MediaType.parse("plain/text");
     public final static Gson                  gson = new Gson();
 
     public final static int DEFAULT_API_VERSION = 1;
@@ -39,6 +37,7 @@ public class VantiqSession {
     private int      apiVersion;
     private boolean  authenticated;
     private String   accessToken;
+    private String   idToken;
     private String   username;
 
     private long readTimeout = 0;
@@ -90,6 +89,15 @@ public class VantiqSession {
     }
 
     /**
+     * Returns the current idToken.  If not authenticated, this is null.
+     *
+     * @return The idToken or null if not an authenticated session or an old Vantiq server
+     */
+    public String getIdToken() {
+        return this.idToken;
+    }
+
+    /**
      * Returns the current access token.  If not authenticated, this is null.
      *
      * @return The access token used for requests or null if not an authenticated session.
@@ -97,6 +105,7 @@ public class VantiqSession {
     public String getAccessToken() {
         return this.accessToken;
     }
+
 
     /**
      * Returns the user associated with the connection
@@ -290,27 +299,40 @@ public class VantiqSession {
      * Authenticates onto the Vantiq server with the provided credentials.  After
      * this call completes, the credentials are not stored.
      *
-     * @param username The username for the Vantiq server
-     * @param password The password for the Vantiq server
+     * @param username        The username for the Vantiq server
+     * @param password        The password for the Vantiq server
      * @param responseHandler The response handler that is called upon completion.  If null,
      *                        then the call is performed synchronously and the response is
      *                        provided as the returned value.
      * @return The response from the Vantiq server
      */
 
-    public VantiqResponse authenticate(final String username, String password, ResponseHandler responseHandler) {
+    public VantiqResponse authenticate(final String username, String password, ResponseHandler responseHandler)
+    {
         Callback cb = null;
-        if(responseHandler != null) {
-            cb = new CallbackAdapter(responseHandler) {
+        if (responseHandler != null)
+        {
+            cb = new CallbackAdapter(responseHandler)
+            {
                 @Override
-                public void responseHook(Object body) {
+                public void responseHook(Object body)
+                {
                     JsonElement jsonBody = (JsonElement) body;
-                    if (jsonBody != null && jsonBody.isJsonObject()) {
+                    if (jsonBody != null && jsonBody.isJsonObject())
+                    {
                         JsonElement token = ((JsonObject) jsonBody).get("accessToken");
-                        if (token != null) {
+                        if (token != null)
+                        {
                             VantiqSession.this.username = username;
                             VantiqSession.this.accessToken = token.getAsString();
                             VantiqSession.this.authenticated = true;
+
+                            JsonElement idToken = ((JsonObject) jsonBody).get("idToken");
+
+                            if (idToken != null)
+                            {
+                                VantiqSession.this.idToken = idToken.getAsString();
+                            }
                         }
                     }
                 }
@@ -323,24 +345,221 @@ public class VantiqSession {
         //
         String usernameAndPassword = username + ":" + password;
         String encoded = "Basic " + ByteString.encodeUtf8(usernameAndPassword).base64();
-        
+
         VantiqResponse response = this.request(encoded, "GET", "authenticate",
                 null, null, false, cb);
-        
-        if(response != null) {
+
+        if (response != null)
+        {
             JsonElement jsonBody = (JsonElement) response.getBody();
-            if (jsonBody != null && jsonBody.isJsonObject()) {
+            if (jsonBody != null && jsonBody.isJsonObject())
+            {
                 JsonElement token = ((JsonObject) jsonBody).get("accessToken");
-                if (token != null) {
+                if (token != null)
+                {
                     this.username = username;
                     this.accessToken = token.getAsString();
                     this.authenticated = true;
+
+                    JsonElement idToken = ((JsonObject) jsonBody).get("idToken");
+
+                    if (idToken != null)
+                    {
+                        this.idToken = idToken.getAsString();
+                    }
+
                 }
             }
         }
 
         return response;
     }
+
+    /**
+     * Authenticates onto the Vantiq server with the provided credentials.  After
+     * this call completes, the credentials are not stored.
+     *
+     * @param accessToken     The accessToken to be revoked
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     * @return The response from the Vantiq server
+     */
+
+    public VantiqResponse revoke(final String accessToken, ResponseHandler responseHandler)
+    {
+        Callback cb = null;
+
+        if (responseHandler != null)
+        {
+            cb = new CallbackAdapter(responseHandler)
+            {
+                @Override
+                public void responseHook(Object body)
+                {
+
+                    VantiqSession.this.username = null;
+                    VantiqSession.this.accessToken = null;
+                    VantiqSession.this.authenticated = false;
+                }
+            };
+        }
+
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(this.server).newBuilder();
+        urlBuilder.addPathSegments("authenticate/revoke");
+
+
+        // Build request
+        Request.Builder builder = new Request.Builder()
+                .url(urlBuilder.build());
+
+        // Add body based on type
+        RequestBody reqBody = null;
+
+        builder.addHeader("Content-Type", PLAIN_TEXT.toString());
+        builder.method("POST", RequestBody.create(PLAIN_TEXT, accessToken));
+
+
+        // Finally construct the request
+        Request request = builder.build();
+
+        VantiqResponse response = null;
+
+        // Execute the request either synchronously or asynchronously based on existence of callback
+        if (cb != null)
+        {
+            client.newCall(request).enqueue(cb);
+            return null;
+        }
+        else
+        {
+            try
+            {
+                response = VantiqResponse.createFromResponse(client.newCall(request).execute(), false);
+            }
+            catch (IOException ex)
+            {
+                throw new RuntimeException(ex);
+            }
+        }
+
+
+        if (response != null)
+        {
+            VantiqSession.this.username = null;
+            VantiqSession.this.accessToken = null;
+            VantiqSession.this.authenticated = false;
+        }
+
+        return response;
+    }
+
+
+    /**
+     * Refreshes the supplied accessToken
+     *
+     * @param accessToken     The accessToken to be refreshed
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     * @return The response from the Vantiq server
+     */
+
+    public VantiqResponse refresh(final String accessToken, ResponseHandler responseHandler)
+    {
+        Callback cb = null;
+
+        if (responseHandler != null)
+        {
+            cb = new CallbackAdapter(responseHandler)
+            {
+                @Override
+                public void responseHook(Object body)
+                {
+                    JsonElement jsonBody = (JsonElement) body;
+                    if (jsonBody != null && jsonBody.isJsonObject())
+                    {
+                        JsonElement token = ((JsonObject) jsonBody).get("accessToken");
+                        if (token != null)
+                        {
+                            VantiqSession.this.accessToken = token.getAsString();
+                            VantiqSession.this.authenticated = true;
+
+                            JsonElement idToken = ((JsonObject) jsonBody).get("idToken");
+
+                            if (idToken != null)
+                            {
+                                VantiqSession.this.idToken = idToken.getAsString();
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(this.server).newBuilder();
+        urlBuilder.addPathSegments("authenticate/refresh");
+
+
+        // Build request
+        Request.Builder builder = new Request.Builder()
+                .url(urlBuilder.build());
+
+        // Add body based on type
+        RequestBody reqBody = null;
+
+        builder.addHeader("Content-Type", PLAIN_TEXT.toString());
+        builder.method("POST", RequestBody.create(PLAIN_TEXT, accessToken));
+
+
+        // Finally construct the request
+        Request request = builder.build();
+
+        VantiqResponse response = null;
+
+        // Execute the request either synchronously or asynchronously based on existence of callback
+        if (cb != null)
+        {
+            client.newCall(request).enqueue(cb);
+            return null;
+        }
+        else
+        {
+            try
+            {
+                response = VantiqResponse.createFromResponse(client.newCall(request).execute(), false);
+            }
+            catch (IOException ex)
+            {
+                throw new RuntimeException(ex);
+            }
+        }
+        
+        if (response != null)
+        {
+            JsonElement jsonBody = (JsonElement) response.getBody();
+            if (jsonBody != null && jsonBody.isJsonObject())
+            {
+                JsonElement token = ((JsonObject) jsonBody).get("accessToken");
+                if (token != null)
+                {
+                    this.accessToken = token.getAsString();
+                    this.authenticated = true;
+
+                    JsonElement idToken = ((JsonObject) jsonBody).get("idToken");
+
+                    if (idToken != null)
+                    {
+                        this.idToken = idToken.getAsString();
+                    }
+                }
+            }
+        }
+
+        return response;
+    }
+
 
     /**
      * Check that the session has been authenticated.  If not authenticated
