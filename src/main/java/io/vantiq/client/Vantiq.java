@@ -394,6 +394,58 @@ public class Vantiq {
     }
 
     /**
+     * Performs a synchronous batch query, specified by a JSON array.
+     *
+     * This is currently for internal use only and is not documented.
+     *
+     * @param requests A JsonArray of "request objects", each looking something like this:
+     *                 {
+     *                      "method": "GET",
+     *                      "headers": {
+     *                          "Content-type": "application/json"
+     *                      },
+     *                      "uri": /types?where={"name":"ArsType"}
+     *                 }
+     *
+     *                 Note that anything past the "?" in the "uri" (which means the "where" clause in this case)
+     *                 must be URL encoded.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse batch(JsonArray requests) {
+        String path = "/batch";
+
+        Map<String,String> queryParams = new HashMap<String,String>();
+
+        for (int i=0; i<requests.size(); i++)
+        {
+            JsonObject jo = (JsonObject)requests.get(i);
+            JsonObject headers = (JsonObject)jo.get("headers");
+
+            headers.addProperty("Authorization","Bearer " + this.getAccessToken());
+        }
+
+        String body = requests.toString();
+
+        VantiqResponse response = this.session.post(path, queryParams, body, null);
+
+        if(response != null) 
+        {
+            if(response.getBody() instanceof JsonArray) 
+            {
+                JsonArray arr = (JsonArray) response.getBody();
+                List<JsonObject> resultBody = new ArrayList<JsonObject>();
+                for(int i=0; i<arr.size(); i++) {
+                    resultBody.add((JsonObject) arr.get(i));
+                }
+                response.setBody(resultBody);
+            }
+        }
+
+        return response;
+    }
+
+
+    /**
      * Returns the record for the given resource and specified id.  The response is a single JsonObject.
      * Performs a query to search for records that match the given constraints synchronously.
      * The response body will be a List of JsonObject objects.
