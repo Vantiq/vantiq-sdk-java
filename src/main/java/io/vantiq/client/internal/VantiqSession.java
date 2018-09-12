@@ -58,10 +58,23 @@ public class VantiqSession {
     }
 
     private void createClient() {
+        
+        //
+        //  Unless we specifically ask for HTTP 1.1 we are at risk for this error:
+        //
+        //  ProtocolException: Expected ':status' header not present
+        //
+        //  See https://stackoverflow.com/questions/46807237/protocolexception-expected-status-header-not-present
+        //  See https://stackoverflow.com/questions/49643383/http-2-protocol-not-working-with-okhttp
+        //
+        List<Protocol> protocols = new ArrayList<Protocol>();
+        protocols.add(Protocol.HTTP_1_1);
+        
         this.client = new OkHttpClient.Builder()
             .readTimeout(this.readTimeout, TimeUnit.MILLISECONDS)
             .writeTimeout(this.writeTimeout, TimeUnit.MILLISECONDS)
             .connectTimeout(this.connectTimeout, TimeUnit.MILLISECONDS)
+            .protocols(protocols)
             .build();
     }
 
