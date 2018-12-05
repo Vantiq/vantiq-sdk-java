@@ -4,7 +4,7 @@
 
 <!DOCTYPE html>
 <html>
-	
+	<link rel="stylesheet" type="text/css" href="style.css">
 	<script type="text/javascript">
 		if ('WebSocket' in window) {
 			var webSocket = new WebSocket("ws://localhost:8000/JavaProntoClient/websocket");
@@ -32,27 +32,12 @@
     <title>VANTIQ LiveView</title>
     <body>
     	<h1>Live feed of events on ${eventName}</h1>
-    	<form action="${pageContext.request.contextPath}/Catalog" method="post">
+    	<form style="text-align: center" action="${pageContext.request.contextPath}/Catalog" method="post">
    			<input type="submit" name="viewCatalog" value="Return to Catalog">
    			<input type="hidden" name="catalogName" value="${catalogName}">
     	</form>
-    	<ul id="events">
+    	<ul style="text-align: center; list-style-type: none; padding: 0px;" id="events">
     	
     	</ul>
     </body>
 </html>
-
-<style type="text/css">
-	h1,h3{
-        text-align: center;
-        font-family: arial, sans-serif;
-    }
-    form{
-    	text-align: center;
-    }
-    #events{
-    	text-align: center;
-    	list-style-type: none;
-    	padding: 0px;
-    }
-</style>

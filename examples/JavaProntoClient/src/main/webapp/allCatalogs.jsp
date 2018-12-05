@@ -4,6 +4,7 @@
 
 <!DOCTYPE html>
 <html>
+	<link rel="stylesheet" type="text/css" href="style.css">
     <title>VANTIQ Catalogs</title>
     <body>
     	<h1>You're now connected to the VANTIQ Server</h1>
@@ -29,27 +30,3 @@
         </div>
     </body>
 </html>
-
-<style type="text/css">
-	h1,h2{
-        text-align: center;
-        font-family: arial, sans-serif;
-    }
-    div{
-        padding: 10px 25px 25px 25px;
-    }
-    table{
-    	margin: 0 auto;
-        font-family: arial, sans-serif;
-        border-collapse: collapse;
-        width: 40%;
-    }
-    td, th{
-        border-bottom: 1px solid #000000;
-        text-align: center;
-        padding: 15px;
-    }
-    tr:nth-child(even){
-        background-color: #dddddd;
-    }
-</style>

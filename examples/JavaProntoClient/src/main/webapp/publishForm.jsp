@@ -4,11 +4,12 @@
 
 <!DOCTYPE html>
 <html>
+	<link rel="stylesheet" type="text/css" href="style.css">
     <title>VANTIQ Publish</title>
     <body>
     	<h1>Publishing to: ${publishID}</h1>
     	<h3>Please fill out form in JSON format to publish:</h3>
-    	<form action="${pageContext.request.contextPath}/Publish" method="post">
+    	<form style="text-align:center" action="${pageContext.request.contextPath}/Publish" method="post">
     		<textarea rows="10" cols="60" name="publishForm">
 {
 	"Key": "Value",
@@ -34,19 +35,9 @@
     			<input type="hidden" name="catalogName" value="${catalogName}">
     		</table>
     	</form>
-    	<form action="${pageContext.request.contextPath}/Catalog" method="post">
+    	<form style="text-align:center" action="${pageContext.request.contextPath}/Catalog" method="post">
  			<input type="submit" name="viewCatalog" value="Return to Catalog">
  			<input type="hidden" name="catalogName" value="${catalogName}">
     	</form>
     </body>
 </html>
-
-<style type="text/css">
-	h1,h3{
-        text-align: center;
-        font-family: arial, sans-serif;
-    }
-    form{
-    	text-align: center;
-    }
-</style>

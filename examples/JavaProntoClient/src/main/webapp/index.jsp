@@ -4,23 +4,24 @@
 
 <!DOCTYPE html>
 <html>
+	<link rel="stylesheet" type="text/css" href="style.css">
     <title>Pronto Client</title>
     <body>
         <h1>VANTIQ Event Catalog</h1>
         <br>
-        <form action="${pageContext.request.contextPath}/AllCatalogs" method="post">
+        <form style="text-align:center; font-family:arial,sans-serif" action="${pageContext.request.contextPath}/AllCatalogs" method="post">
      		Username:<br>
-		  	<input type="text" name="username" class="text" placeholder="username">
+		  	<input type="text" name="username" style="margin-top: 5px; margin-bottom: 10px" placeholder="username">
 		  	<br>
 		  	Password:<br>
-		  	<input type="password" name="password" class="text" placeholder="password">
+		  	<input type="password" name="password" style="margin-top: 5px; margin-bottom: 10px" placeholder="password">
 		  	<br>
 		  	<input type="submit" name="submitPass" value="Submit">
         </form>
         <h2>--OR--</h2>
-        <form action="${pageContext.request.contextPath}/AllCatalogs" method="post">
+        <form style="text-align:center; font-family:arial,sans-serif" action="${pageContext.request.contextPath}/AllCatalogs" method="post">
         	Existing Token:<br>
-		  	<input type="text" name="authToken" class="text" placeholder="auth token">
+		  	<input type="text" name="authToken" style="margin-top: 5px; margin-bottom: 10px" placeholder="auth token">
 		  	<br>
 		  	<input type="submit" name="submitAuth" value="Submit">
         </form>
@@ -29,18 +30,3 @@
         </c:if>
     </body>
 </html>
-
-<style type="text/css">
-	h1,h2,h3{
-        text-align: center;
-        font-family: arial, sans-serif;
-    }
-    form{
-    	text-align: center;
-        font-family: arial, sans-serif;
-    }
-    .text{
-        margin-top: 5px;
-        margin-bottom: 10px;
-    }
-</style>

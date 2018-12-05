@@ -8,7 +8,7 @@ repositories {
     
     // Used for VANTIQ SDK
     maven {
-    	url "https://dl.bintray.com/vantiq/maven"
+        url "https://dl.bintray.com/vantiq/maven"
     }
 }
  
@@ -26,7 +26,7 @@ dependencies {
            "org.apache.tomcat:tomcat-websocket:${tomcatVersion}"
     
     // Used for VANTIQ SDK
-	compile 'io.vantiq:vantiq-sdk:1.0.17'
+    compile 'io.vantiq:vantiq-sdk:1.0.17'
 	
 	// Used to setup Java WebSockets
 	compile 'javax.websocket:javax.websocket-api:1.1'
