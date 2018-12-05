@@ -4,13 +4,13 @@
 
 <!DOCTYPE html>
 <html>
-	<link rel="stylesheet" type="text/css" href="style.css">
-	<script type="text/javascript">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript">
 		if ('WebSocket' in window) {
 			var webSocket = new WebSocket("ws://localhost:8000/JavaProntoClient/websocket");
-	    	webSocket.onopen = function(message) {
-	    		console.log("Websocket Connected.");
-	    	}
+			webSocket.onopen = function(message) {
+				console.log("Websocket Connected.");
+			}
 	    	webSocket.onmessage = function(message) {
 	    		console.log(message.data);
 	    		var ul = document.getElementById("events");
@@ -31,13 +31,13 @@
 
     <title>VANTIQ LiveView</title>
     <body>
-    	<h1>Live feed of events on ${eventName}</h1>
-    	<form style="text-align: center" action="${pageContext.request.contextPath}/Catalog" method="post">
-   			<input type="submit" name="viewCatalog" value="Return to Catalog">
-   			<input type="hidden" name="catalogName" value="${catalogName}">
-    	</form>
-    	<ul style="text-align: center; list-style-type: none; padding: 0px;" id="events">
+        <h1>Live feed of events on ${eventName}</h1>
+        <form style="text-align: center" action="${pageContext.request.contextPath}/Catalog" method="post">
+            <input type="submit" name="viewCatalog" value="Return to Catalog">
+            <input type="hidden" name="catalogName" value="${catalogName}">
+        </form>
+        <ul style="text-align: center; list-style-type: none; padding: 0px;" id="events">
     	
-    	</ul>
+        </ul>
     </body>
 </html>

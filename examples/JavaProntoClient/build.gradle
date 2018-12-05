@@ -28,8 +28,8 @@ dependencies {
     // Used for VANTIQ SDK
     compile 'io.vantiq:vantiq-sdk:1.0.17'
 	
-	// Used to setup Java WebSockets
-	compile 'javax.websocket:javax.websocket-api:1.1'
+    // Used to setup Java WebSockets
+    compile 'javax.websocket:javax.websocket-api:1.1'
 }
 
 tomcat {
