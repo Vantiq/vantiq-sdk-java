@@ -39,4 +39,10 @@ captures/
 # Keystore files
 *.jks
 
+# examples/JavaProntoClient files
+examples/JavaProntoClient/.settings
+examples/JavaProntoClient/.classpath
+examples/JavaProntoClient/.project
+examples/JavaProntoClient/gradle
+
 *.DS_Store
