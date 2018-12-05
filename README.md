@@ -103,6 +103,10 @@ if(response.isSuccess()) {
 
 For the full documentation on the SDK, see the [SDK API Reference](./docs/api.md).
 
+## Examples
+
+Example projects can be found under the [examples directory](./examples).
+
 ## Developers
 
 The unit tests are mocked so they can be executed without a Vantiq server and account.  The integration tests require a Vantiq account with the artifacts under `src/resources/intgTest` loaded.  These can be loaded using the Vantiq CLI using the import command, e.g.,

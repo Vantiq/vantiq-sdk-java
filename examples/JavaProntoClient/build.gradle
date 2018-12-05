@@ -1,0 +1,50 @@
+
+apply plugin: 'java'
+apply plugin: 'war' 
+apply plugin: 'com.bmuschko.tomcat'
+ 
+repositories {
+    jcenter()
+    
+    // Used for VANTIQ SDK
+    maven {
+        url "https://dl.bintray.com/vantiq/maven"
+    }
+}
+ 
+dependencies {   
+  
+    providedCompile "javax.servlet:javax.servlet-api:3.1.0"   
+    				"javax.servlet:jsp-api:2.0"
+    				
+    compile group: 'javax.servlet', name: 'jstl', version: '1.2'
+
+    def tomcatVersion = '9.0.1'
+    tomcat "org.apache.tomcat.embed:tomcat-embed-core:${tomcatVersion}",
+           "org.apache.tomcat.embed:tomcat-embed-logging-juli:9.0.0.M6",
+           "org.apache.tomcat.embed:tomcat-embed-jasper:${tomcatVersion}",
+           "org.apache.tomcat:tomcat-websocket:${tomcatVersion}"
+    
+    // Used for VANTIQ SDK
+    compile 'io.vantiq:vantiq-sdk:1.0.17'
+	
+    // Used to setup Java WebSockets
+    compile 'javax.websocket:javax.websocket-api:1.1'
+}
+
+tomcat {
+    httpProtocol = 'org.apache.coyote.http11.Http11Nio2Protocol'
+    ajpProtocol  = 'org.apache.coyote.ajp.AjpNio2Protocol'
+    httpPort = 8000
+}
+
+buildscript {
+ 
+    repositories {
+        jcenter()
+    }
+ 
+    dependencies {
+        classpath 'com.bmuschko:gradle-tomcat-plugin:2.5'
+    }
+}
