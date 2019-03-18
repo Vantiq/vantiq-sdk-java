@@ -3,6 +3,7 @@ package io.vantiq.client.internal;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import io.vantiq.client.ResponseHandler;
 import io.vantiq.client.SubscriptionCallback;
@@ -281,17 +282,38 @@ public class VantiqSession {
 
                     if ((errors == null) && (bodyString.length() > 0))
                     {
-                        JsonObject jo = gson.fromJson(bodyString,JsonObject.class);
+                        JsonObject jo = null;
+                        
+                        try
+                        {
+                            jo = gson.fromJson(bodyString,JsonObject.class);
+                        }
+                        catch (Exception ex)
+                        {
+                            //System.err.println("Exception parsing '" + bodyString + "'");
+                            //System.err.println(ex.toString());
 
-                        errors = new ArrayList<VantiqError>();
+                            String code = "io.vantiq.nonjson.error";
+                            String message = bodyString + " (" + response.code() + ")";
 
-                        String code = "io.vantiq.status";
-                        String message = jo.get("error").getAsString() + " (" + response.code() + ")";
+                            VantiqError ve = new VantiqError(code,message,null);
 
-                        VantiqError ve = new VantiqError(code,message,null);
+                            errors = new ArrayList<VantiqError>();
+                            errors.add(ve);
+                        }
+                       
+                        if (jo != null)
+                        {
+                            errors = new ArrayList<VantiqError>();
 
-                        errors.add(ve);
-                    }
+                            String code = "io.vantiq.status";
+                            String message = jo.get("error").getAsString() + " (" + response.code() + ")";
+
+                            VantiqError ve = new VantiqError(code,message,null);
+
+                            errors.add(ve);
+                        }
+                     }
 
                     this.responseHandler.onError(errors, response);
                 } catch(IOException ex) {
@@ -360,7 +382,7 @@ public class VantiqSession {
         String encoded = "Basic " + ByteString.encodeUtf8(usernameAndPassword).base64();
 
         VantiqResponse response = this.request(encoded, "GET", "authenticate",
-                null, null, false, cb);
+                null, null, null, false, cb);
 
         if (response != null)
         {
@@ -598,6 +620,25 @@ public class VantiqSession {
     }
 
     /**
+     * Perform a HTTP GET request against a given raw path
+     *
+     * @param fullPath The unencoded partial path for the GET (without any query parameters)
+     * @param queryParams The unencoded query parameters included in the request
+     * @param extraHeaders   optional headers   
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse rawGet(String fullPath,
+                              Map<String,String> queryParams,
+                              Map<String,String> extraHeaders,
+                              ResponseHandler responseHandler) {
+        Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
+        return this.request(authValue(), "GET", fullPath, queryParams, extraHeaders, null, false, cb);
+    }
+
+    /**
      * Perform a HTTP GET request against a given path
      *
      * @param path The unencoded partial path for the GET (without any query parameters)
@@ -611,7 +652,7 @@ public class VantiqSession {
                               Map<String,String> queryParams,
                               ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "GET", fullpath(path), queryParams, null, false, cb);
+        return this.request(authValue(), "GET", fullpath(path), queryParams, null, null, false, cb);
     }
 
     /**
@@ -630,7 +671,7 @@ public class VantiqSession {
                                String body,
                                ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "POST", fullpath(path), queryParams, body, false, cb);
+        return this.request(authValue(), "POST", fullpath(path), queryParams, null, body, false, cb);
     }
 
     /**
@@ -649,7 +690,7 @@ public class VantiqSession {
                               String body,
                               ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "PUT", fullpath(path), queryParams, body, false, cb);
+        return this.request(authValue(), "PUT", fullpath(path), queryParams, null, body, false, cb);
     }
 
     /**
@@ -666,7 +707,7 @@ public class VantiqSession {
                                  Map<String,String> queryParams,
                                  ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "DELETE", fullpath(path), queryParams, null, false, cb);
+        return this.request(authValue(), "DELETE", fullpath(path), queryParams, null, null, false, cb);
     }
 
     /**
@@ -696,7 +737,7 @@ public class VantiqSession {
             .setType(MultipartBody.FORM)
             .addFormDataPart("defaultName", documentPath, fileBody)
             .build();
-        return this.request(authValue(), "POST", fullpath(path), queryParams, reqBody, false, cb);
+        return this.request(authValue(), "POST", fullpath(path), queryParams, null, reqBody, false, cb);
     }
 
     /**
@@ -711,7 +752,7 @@ public class VantiqSession {
      */
     public VantiqResponse download(String path, ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler, true) : null);
-        return this.request(authValue(), "GET", path, null, null, true, cb);
+        return this.request(authValue(), "GET", path, null, null, null, true, cb);
     }
 
     //----------------------------------------------------------------
@@ -739,6 +780,7 @@ public class VantiqSession {
                                    String method,
                                    String path,
                                    Map<String,String> queryParams,
+                                   Map<String,String> extraHeaders,
                                    Object body,
                                    boolean isStreamingResponse,
                                    Callback callback) {
@@ -755,6 +797,17 @@ public class VantiqSession {
             .url(urlBuilder.build())
             .addHeader("Authorization", authValue);
 
+        if (extraHeaders != null)
+        {
+            for (Map.Entry<String, String> item : extraHeaders.entrySet()) 
+            {
+                String key = item.getKey();
+                String value = item.getValue();
+                
+                builder.addHeader(key,value);
+            }
+        }
+        
         // Add body based on type
         RequestBody reqBody = null;
         if(body != null) {

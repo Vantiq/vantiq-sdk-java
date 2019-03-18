@@ -628,6 +628,133 @@ public class Vantiq {
         return response;
     }
 
+
+
+    /**
+     * Do a GET against the specified raw path type asynchronously.  
+     *
+     * @param fullPath The full path to use
+     * @param queryParams   optional query parameters        
+     * @param extraHeaders   optional headers       
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     */
+    public void rawGet(String fullPath,Map<String,String> queryParams,Map<String,String> extraHeaders,
+                       ResponseHandler responseHandler) {
+        this.session.rawGet(fullPath, queryParams, extraHeaders, responseHandler);
+    }
+
+    /**
+     * Do a GET against the specified raw path type synchronously.    
+     *
+     * @param fullPath The full path to use
+     * @param queryParams   optional query parameters 
+     * @param extraHeaders   optional headers       
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse rawGet(String fullPath,Map<String,String> queryParams,Map<String,String> extraHeaders) {
+        return this.session.rawGet(fullPath, queryParams, extraHeaders, null);
+    }
+
+
+    /**
+     * Do a POST (insert) of the supplied data using the specified path type asynchronously.  
+     *
+     * @param path The path to use
+     * @param object The object to insert.  This will be converted to JSON using Gson.
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     */
+    public void post(String path,
+                       Object object,
+                       ResponseHandler responseHandler) {
+        this.session.post(path, null, VantiqSession.gson.toJson(object), responseHandler);
+    }
+
+    /**
+     * Do a POST (insert) of the supplied data using the specified path synchronously.  
+     *
+     * @param path The path to use
+     * @param object The object to insert.  This will be converted to JSON using Gson.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse post(String path,
+                                 Object object) {
+         return this.session.post(path, null, VantiqSession.gson.toJson(object), null);
+    }
+
+    /**
+     * Do a PUT (update) of the supplied data using the specified path type asynchronously.  
+     *
+     * @param path The path to use
+     * @param object The object to insert.  This will be converted to JSON using Gson.
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     */
+    public void put(String path,
+                     Object object,
+                     ResponseHandler responseHandler) {
+        this.session.put(path, null, VantiqSession.gson.toJson(object), responseHandler);
+    }
+
+    /**
+     * Do a PUT (update) of the supplied data using the specified path synchronously.  
+     *
+     * @param path The path to use
+     * @param object The object to insert.  This will be converted to JSON using Gson.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse put(String path,
+                               Object object) {
+        return this.session.put(path, null, VantiqSession.gson.toJson(object), null);
+    }
+
+    /**
+     * Do a DELETE using the specified path  asynchronously.  The response is a boolean
+     * indicating the success of the removal.
+     *
+     * @param path The path to use
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void del(String path,
+                          ResponseHandler responseHandler) {
+        this.session.delete(path, null, new PassThruResponseHandler(responseHandler) {
+            @Override
+            public void onSuccess(Object body, Response response) {
+                this.delegate.onSuccess(true, response);
+            }
+        });
+    }
+
+    /**
+     * Do a DELETE using the specified path synchronously. The response is a boolean
+     * indicating the success of the removal.
+     *
+     * @param path The path to use
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse del(String path) {
+        VantiqResponse response = this.session.delete(path, null, null);
+        if(response != null && response.isSuccess()) {
+            response.setBody(true);
+        }
+        return response;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
     /**
      * Inserts a new record of the specified resource type asynchronously.  The response is a
      * JsonObject of the record just inserted.

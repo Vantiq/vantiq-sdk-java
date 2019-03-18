@@ -1,12 +1,15 @@
 package io.vantiq.client;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import okhttp3.Response;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -118,9 +121,48 @@ public class VantiqResponse {
 
         if(body.startsWith("[")) {
             Type errorsType = new TypeToken<List<VantiqError>>(){}.getType();
-            return gson.fromJson(body, errorsType);
-        } else {
-            return Collections.singletonList(gson.fromJson(body, VantiqError.class));
+            List<VantiqError> listOfErrors;
+            
+            try
+            {
+                listOfErrors = gson.fromJson(body, errorsType);
+            }
+            catch (Exception ex)
+            {
+                //System.err.println("Exception parsing '" + body + "'");
+                //System.err.println(ex.toString());
+
+                String code = "io.vantiq.nonjson.error";
+                String message = body + " (" + response.code() + ")";
+
+                VantiqError ve = new VantiqError(code,message,null);
+
+                listOfErrors = new ArrayList<>();
+                listOfErrors.add(ve);
+            }
+            
+            return listOfErrors;
+        } 
+        else 
+        {
+            VantiqError ve;
+
+            try
+            {
+                ve = gson.fromJson(body, VantiqError.class);
+            }
+            catch (Exception ex)
+            {
+                //System.err.println("Exception parsing '" + body + "'");
+                //System.err.println(ex.toString());
+
+                String code = "io.vantiq.nonjson.error";
+                String message = body + " (" + response.code() + ")";
+
+                ve = new VantiqError(code,message,null);
+            }
+
+            return Collections.singletonList(ve);
         }
     }
 
