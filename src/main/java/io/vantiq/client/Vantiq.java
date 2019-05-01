@@ -2,11 +2,14 @@ package io.vantiq.client;
 
 import com.google.gson.*;
 import io.vantiq.client.internal.VantiqSession;
+import io.vantiq.client.internal.VantiqSubscriber;
 import okhttp3.Response;
+import okio.Buffer;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -1335,8 +1338,10 @@ public class Vantiq {
             throw new IllegalArgumentException("Subscriptions with options must specify 'consumerGroup' option.");
         }
 
+        String serviceName = (String) options.get(CONSUMER_GROUP);
+
         // the topic we actually want to subscribe to here is <id>/<options.consumerGroup>/<sessionId>
-        String specificId = id + "/" + options.get(CONSUMER_GROUP) + "/" + this.getSessionId();
+        String specificId = id + "/" + serviceName + "/" + this.getSessionId();
 
         this.subscribe(resource, specificId, operation, callback);
 
@@ -1346,13 +1351,37 @@ public class Vantiq {
         String procedureName = "CptHeat.registerMicroservice";
         Map params = new HashMap<String, Object>();
         params.put("topicName", specificId);
-        params.put("serviceName", options.get(CONSUMER_GROUP));
+        params.put("serviceName", serviceName);
         this.execute(procedureName,  params);
 
         // Lastly, set up the heartbeat ping we will send back to the server to keep track of
         // which instances are still online
         ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
+        scheduledExecutor.scheduleAtFixedRate(new MicroserviceHeartbeat(this, specificId, serviceName),
+                0, 10, TimeUnit.SECONDS);
 
+    }
+
+    /**
+     * Runnable implementation to send a ping to the VANTIQ server regularly that indicates a subscription
+     * is still active and listening
+     */
+    private class MicroserviceHeartbeat implements Runnable {
+        private Vantiq vantiq;
+        private Map objectToPublish;
+
+
+        MicroserviceHeartbeat(Vantiq vantiq, String topicName, String serviceName) {
+            this.vantiq = vantiq;
+            this.objectToPublish = new HashMap<String, String>();
+            this.objectToPublish.put("topicName", topicName);
+            this.objectToPublish.put("serviceName", serviceName);
+        }
+
+        @Override
+        public void run() {
+            vantiq.publish(Vantiq.SystemResources.TOPICS.value(), "/microservice/heartbeat", objectToPublish);
+        }
 
     }
 

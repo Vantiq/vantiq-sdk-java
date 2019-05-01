@@ -41,7 +41,7 @@ public class ConsumerGroupTest {
 
             @Override
             public void onMessage(SubscriptionMessage message) {
-                println("SEEN ON SUB1: " + message.getBody().toString());
+                println("1: " + message.getBody().toString());
             }
 
             @Override
@@ -74,7 +74,7 @@ public class ConsumerGroupTest {
 
             @Override
             public void onMessage(SubscriptionMessage message) {
-                println("SEEN ON SUB2: " + message.getBody().toString());
+                println("2: " + message.getBody().toString());
             }
 
             @Override
