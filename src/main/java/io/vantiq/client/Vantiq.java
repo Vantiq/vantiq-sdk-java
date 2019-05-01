@@ -8,6 +8,8 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,6 +48,8 @@ public class Vantiq {
     public enum TypeOperation {
         INSERT, UPDATE, DELETE
     }
+
+    public static final String CONSUMER_GROUP = "consumerGroup";
 
     private VantiqSession session;
     private boolean enablePings = true;
@@ -172,6 +176,15 @@ public class Vantiq {
      */
     public void setEnablePings(boolean enablePings) {
         this.enablePings = enablePings;
+    }
+
+    /**
+     * Get the sessionId from the underling VantiqSession object. This should be a string UUID
+     * generated when a session is first created
+     * @return
+     */
+    public String getSessionId() {
+        return this.session.getSessionId();
     }
 
     /**
@@ -1296,6 +1309,51 @@ public class Vantiq {
         }
 
         this.session.subscribe(path, callback, this.enablePings);
+    }
+
+    /**
+     * Variant of subscribe that takes an options map
+     * The only currently supported option is consumerGroup, which should be a string
+     *
+     * @param resource
+     * @param id
+     * @param operation
+     * @param callback
+     * @param options
+     */
+    public void subscribe(String resource,
+                          String id,
+                          TypeOperation operation,
+                          SubscriptionCallback callback,
+                          Map options) {
+
+        if (!SystemResources.TOPICS.value().equals(resource)) {
+            throw new IllegalArgumentException("Use of options only support for 'topic' subscriptions");
+        }
+
+        if (!options.containsKey(CONSUMER_GROUP)) {
+            throw new IllegalArgumentException("Subscriptions with options must specify 'consumerGroup' option.");
+        }
+
+        // the topic we actually want to subscribe to here is <id>/<options.consumerGroup>/<sessionId>
+        String specificId = id + "/" + options.get(CONSUMER_GROUP) + "/" + this.getSessionId();
+
+        this.subscribe(resource, specificId, operation, callback);
+
+        // After registering the subscription we need to invoke a procedure on the server side
+        // that will register a Microservices instance
+        // NOTE: this is a custom solution for Capital Heat and not a long term solution
+        String procedureName = "CptHeat.registerMicroservice";
+        Map params = new HashMap<String, Object>();
+        params.put("topicName", specificId);
+        params.put("serviceName", options.get(CONSUMER_GROUP));
+        this.execute(procedureName,  params);
+
+        // Lastly, set up the heartbeat ping we will send back to the server to keep track of
+        // which instances are still online
+        ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
+
+
     }
 
     /**

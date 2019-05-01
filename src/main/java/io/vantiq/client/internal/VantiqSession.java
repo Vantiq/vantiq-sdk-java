@@ -18,6 +18,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,6 +41,7 @@ public class VantiqSession {
     private String   accessToken;
     private String   idToken;
     private String   username;
+    private String   sessionId;
 
     private long readTimeout = 0;
     private long writeTimeout = 0;
@@ -55,6 +57,7 @@ public class VantiqSession {
         super();
         this.server     = server;
         this.apiVersion = apiVersion;
+        this.sessionId = UUID.randomUUID().toString();
         createClient();
     }
 
@@ -221,6 +224,10 @@ public class VantiqSession {
      */
     public long getConnectTimeout() {
         return this.connectTimeout;
+    }
+
+    public String getSessionId() {
+        return this.sessionId;
     }
 
     /**
