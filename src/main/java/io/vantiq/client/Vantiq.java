@@ -52,7 +52,7 @@ public class Vantiq {
         INSERT, UPDATE, DELETE
     }
 
-    public static final String CONSUMER_GROUP = "consumerGroup";
+    public static final String SUBSCRIBER_GROUP = "subscriberGroup";
 
     private VantiqSession session;
     private boolean enablePings = true;
@@ -1316,7 +1316,7 @@ public class Vantiq {
 
     /**
      * Variant of subscribe that takes an options map
-     * The only currently supported option is consumerGroup, which should be a string
+     * The only currently supported option is subscriberGroup, which should be a string
      *
      * @param resource
      * @param id
@@ -1334,11 +1334,11 @@ public class Vantiq {
             throw new IllegalArgumentException("Use of options only support for 'topic' subscriptions");
         }
 
-        if (!options.containsKey(CONSUMER_GROUP)) {
-            throw new IllegalArgumentException("Subscriptions with options must specify 'consumerGroup' option.");
+        if (!options.containsKey(SUBSCRIBER_GROUP)) {
+            throw new IllegalArgumentException("Subscriptions with options must specify 'subscriberGroup' option.");
         }
 
-        String serviceName = (String) options.get(CONSUMER_GROUP);
+        String serviceName = (String) options.get(SUBSCRIBER_GROUP);
 
         // the topic we actually want to subscribe to here is <id>/<options.consumerGroup>/<sessionId>
         String specificId = id + "/" + serviceName + "/" + this.getSessionId();

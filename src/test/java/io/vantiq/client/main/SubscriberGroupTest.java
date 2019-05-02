@@ -11,7 +11,7 @@ import java.util.HashMap;
 /**
  * Example client that subscribes to a specific topic and prints out events
  */
-public class ConsumerGroupTest {
+public class SubscriberGroupTest {
 
     private static void println(String msg) {
         System.out.println(new Date() + " - " + msg);
@@ -30,7 +30,7 @@ public class ConsumerGroupTest {
         vantiq1.setAccessToken(accessToken);
 
         HashMap<String, String> subOptions = new HashMap<>();
-        subOptions.put("consumerGroup", "test");
+        subOptions.put("subscriberGroup", "test");
 
         vantiq1.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test", null, new SubscriptionCallback() {
 
