@@ -184,7 +184,7 @@ public class Vantiq {
     /**
      * Get the sessionId from the underling VantiqSession object. This should be a string UUID
      * generated when a session is first created
-     * @return
+     * @return the unique identifier for an instance of the SDK
      */
     public String getSessionId() {
         return this.session.getSessionId();
@@ -1318,11 +1318,15 @@ public class Vantiq {
      * Variant of subscribe that takes an options map
      * The only currently supported option is subscriberGroup, which should be a string
      *
-     * @param resource
-     * @param id
-     * @param operation
-     * @param callback
-     * @param options
+     * @param resource The resource whose events to subscribe.  This must be the
+     *                 value of {@link Vantiq.SystemResources#TOPICS},
+     *                 {@link Vantiq.SystemResources#SOURCES}, or
+     *                 {@link Vantiq.SystemResources#TYPES}.
+     * @param id The id of the resource
+     * @param operation Only for "types", the specific operation event to subscribe to.
+     * @param callback The callback used when the event is received
+     * @param options A map defining special options for the subscription
+     *                Currently the only supported option is subscriberGroups
      */
     public void subscribe(String resource,
                           String id,
@@ -1358,8 +1362,7 @@ public class Vantiq {
         // which instances are still online
         ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
         scheduledExecutor.scheduleAtFixedRate(new MicroserviceHeartbeat(this, specificId, serviceName),
-                0, 10, TimeUnit.SECONDS);
-
+                0, 1, TimeUnit.SECONDS);
     }
 
     /**
@@ -1369,7 +1372,6 @@ public class Vantiq {
     private class MicroserviceHeartbeat implements Runnable {
         private Vantiq vantiq;
         private Map objectToPublish;
-
 
         MicroserviceHeartbeat(Vantiq vantiq, String topicName, String serviceName) {
             this.vantiq = vantiq;
