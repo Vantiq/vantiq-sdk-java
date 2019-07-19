@@ -179,8 +179,7 @@ public class VantiqConnectAuthTest extends VantiqTestBase {
     @Test
     public void testUnauthroizedUploadImage() throws Exception {
         try {
-            ResponseHandler nullResponseHandler = null; // Used to distinguish between different upload methods
-            vantiq.upload(new File("/foo/bar/file.jpg"), "image/jpeg", "file.jpg", "/resources/images", nullResponseHandler);
+            vantiq.upload(new File("/foo/bar/file.jpg"), "image/jpeg", "file.jpg", "/resources/images", null);
             fail("Should not allow unauthenticated requests");
         } catch(IllegalStateException ex) {
             assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
@@ -190,8 +189,7 @@ public class VantiqConnectAuthTest extends VantiqTestBase {
     @Test
     public void testUnauthroizedUploadVideo() throws Exception {
         try {
-            ResponseHandler nullResponseHandler = null; // Used to distinguish between different upload methods
-            vantiq.upload(new File("/foo/bar/file.mp4"), "video/mp4", "file.mp4", "/resources/videos", nullResponseHandler);
+            vantiq.upload(new File("/foo/bar/file.mp4"), "video/mp4", "file.mp4", "/resources/videos", null);
             fail("Should not allow unauthenticated requests");
         } catch(IllegalStateException ex) {
             assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
