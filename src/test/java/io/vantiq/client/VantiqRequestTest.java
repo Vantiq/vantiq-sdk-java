@@ -537,8 +537,8 @@ public class VantiqRequestTest extends VantiqTestBase {
 
     @Test
     public void testUploadImagePNG() throws Exception {
-        String fileName = "testImage.jpg";
-        testUploadImageHelper(fileName, "image/jpeg");
+        String fileName = "testImage.png";
+        testUploadImageHelper(fileName, "image/png");
     }
 
     public void testUploadImageHelper(String fileName, String contentType) throws Exception {
