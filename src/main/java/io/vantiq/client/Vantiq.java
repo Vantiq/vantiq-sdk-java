@@ -28,7 +28,9 @@ public class Vantiq {
         SOURCES("sources"),
         TOPICS("topics"),
         TYPES("types"),
-        USERS("users");
+        USERS("users"),
+        IMAGES("images"),
+        VIDEOS("videos");
 
         private String value;
 
@@ -1220,6 +1222,74 @@ public class Vantiq {
         //
         String path = "/resources/" + SystemResources.DOCUMENTS.value();
         return this.session.upload(path, file, contentType, documentPath, null, null);
+    }
+
+    /**
+     * Performs an upload of the given file asynchronously.  The response provides info on the
+     * document uploaded.
+     *
+     * @param file The file to upload
+     * @param contentType The MIME type for the file
+     * @param filePath The path of the file to store in Vantiq
+     * @param resourcePath The path of the VANTIQ Resource to upload to
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void upload(final File file,
+                       final String contentType,
+                       final String filePath,
+                       final String resourcePath,
+                       final ResponseHandler responseHandler) {
+        //
+        // Verify that we have a valid session first because we don't want the client to wait
+        // for a long upload to complete before determining that it would have failed because
+        // the session was expired.
+        //
+        this.session.get("_status", null, new ResponseHandler() {
+            @Override
+            public void onSuccess(Object body, Response response) {
+                //
+                // Proceed with the upload
+                //
+                Vantiq.this.session.upload(resourcePath, file, contentType, filePath, null, responseHandler);
+            }
+
+            @Override
+            public void onError(List<VantiqError> errors, Response response) {
+                responseHandler.onError(errors, response);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                responseHandler.onFailure(t);
+            }
+        });
+    }
+
+    /**
+     * Performs an upload of the given file synchronously.  The response provides info on the
+     * document uploaded.
+     *
+     * @param file The file to upload
+     * @param contentType The MIME type for the file
+     * @param filePath The path of the file in the Vantiq system
+     * @param resourcePath The path of the VANTIQ Resource to upload to
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse upload(File file, String contentType, String filePath, String resourcePath) {
+        //
+        // Verify that we have a valid session first because we don't want the client to wait
+        // for a long upload to complete before determining that it would have failed because
+        // the session was expired.
+        //
+        VantiqResponse response = this.session.get("_status", null, null);
+        if(response.getStatusCode() != 200) {
+            return response;
+        }
+
+        //
+        // Proceed with the upload
+        //
+        return this.session.upload(resourcePath, file, contentType, filePath, null, null);
     }
 
     /**

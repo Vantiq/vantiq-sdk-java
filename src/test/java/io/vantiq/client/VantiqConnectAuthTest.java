@@ -168,7 +168,30 @@ public class VantiqConnectAuthTest extends VantiqTestBase {
     @Test
     public void testUnauthorizedUpload() throws Exception {
         try {
-            vantiq.upload(new File("/foo/bar/file.txt"), "text/plain", "file.txt", null);
+            ResponseHandler nullResponseHandler = null; // Used to distinguish between different upload methods
+            vantiq.upload(new File("/foo/bar/file.txt"), "text/plain", "file.txt", nullResponseHandler);
+            fail("Should not allow unauthenticated requests");
+        } catch(IllegalStateException ex) {
+            assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
+        }
+    }
+
+    @Test
+    public void testUnauthroizedUploadImage() throws Exception {
+        try {
+            ResponseHandler nullResponseHandler = null; // Used to distinguish between different upload methods
+            vantiq.upload(new File("/foo/bar/file.jpg"), "image/jpeg", "file.jpg", "/resources/images", nullResponseHandler);
+            fail("Should not allow unauthenticated requests");
+        } catch(IllegalStateException ex) {
+            assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
+        }
+    }
+
+    @Test
+    public void testUnauthroizedUploadVideo() throws Exception {
+        try {
+            ResponseHandler nullResponseHandler = null; // Used to distinguish between different upload methods
+            vantiq.upload(new File("/foo/bar/file.mp4"), "video/mp4", "file.mp4", "/resources/videos", nullResponseHandler);
             fail("Should not allow unauthenticated requests");
         } catch(IllegalStateException ex) {
             assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
