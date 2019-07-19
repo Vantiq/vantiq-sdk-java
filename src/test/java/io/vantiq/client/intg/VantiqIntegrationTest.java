@@ -379,7 +379,7 @@ public class VantiqIntegrationTest {
         UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
 
         // Subscribe to topic
-        vantiq.subscribe("topics", "/test/topic", null, callback);
+        vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback);
         callback.waitForCompletion();
         assertThat("Connected", callback.isConnected(), is(true));
         callback.reset();
@@ -387,7 +387,7 @@ public class VantiqIntegrationTest {
         // Synchronously publish to the topic
         Map body = new HashMap();
         body.put("time", new Date());
-        VantiqResponse r = vantiq.publish("system.topics", "/test/topic", body);
+        VantiqResponse r = vantiq.publish("topics", "/test/topic", body);
         assertThat("Valid publish", r.isSuccess(), is(true));
 
         // Wait for the message
@@ -425,7 +425,7 @@ public class VantiqIntegrationTest {
         UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
 
         // Subscribe to type
-        vantiq.subscribe("types", "TestType", Vantiq.TypeOperation.INSERT, callback);
+        vantiq.subscribe(Vantiq.SystemResources.TYPES.value(), "TestType", Vantiq.TypeOperation.INSERT, callback);
         callback.waitForCompletion();
         assertThat("Connected", callback.isConnected(), is(true));
         callback.reset();
