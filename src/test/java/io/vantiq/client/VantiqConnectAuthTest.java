@@ -177,7 +177,7 @@ public class VantiqConnectAuthTest extends VantiqTestBase {
     }
 
     @Test
-    public void testUnauthroizedUploadImage() throws Exception {
+    public void testUnauthorizedUploadImage() throws Exception {
         try {
             vantiq.upload(new File("/foo/bar/file.jpg"), "image/jpeg", "file.jpg", "/resources/images", null);
             fail("Should not allow unauthenticated requests");
@@ -187,7 +187,7 @@ public class VantiqConnectAuthTest extends VantiqTestBase {
     }
 
     @Test
-    public void testUnauthroizedUploadVideo() throws Exception {
+    public void testUnauthorizedUploadVideo() throws Exception {
         try {
             vantiq.upload(new File("/foo/bar/file.mp4"), "video/mp4", "file.mp4", "/resources/videos", null);
             fail("Should not allow unauthenticated requests");
