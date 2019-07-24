@@ -482,4 +482,140 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
         assertThat("Valid body - name", ((JsonObject) response.getBody()).get("name").getAsString(), is("testFile.txt"));
         assertThat("Valid body - fileType", ((JsonObject) response.getBody()).get("fileType").getAsString(), is("text/plain"));
     }
+
+    @Test
+    public void testUploadImageInvalidSessionJPG() throws Exception {
+        String fileName = "testImage.jpg";
+        testUploadImageInvalidSessionHelper(fileName, "image/jpeg");
+    }
+
+    @Test
+    public void testUploadImageInvalidSessionPNG() throws Exception {
+        String fileName = "testImage.png";
+        testUploadImageInvalidSessionHelper(fileName, "image/png");
+    }
+
+    public void testUploadImageInvalidSessionHelper(String fileName, String contentType) throws Exception {
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(401));
+
+        File file = new File(this.getClass().getResource("/" + fileName).getFile());
+        VantiqResponse response = vantiq.upload(file, contentType, fileName, "/resources/images");
+
+        // Assert that we had an invalid response
+        assertTrue("Error response", !response.isSuccess());
+        assertThat("Invalid Authentication Status", response.getStatusCode(), is(401));
+    }
+
+    @Test
+    public void testUploadImageJPG() throws Exception {
+        String fileName = "testImage.jpg";
+        testUploadImageHelper(fileName, "image/jpeg");
+    }
+
+    @Test
+    public void testUploadImagePNG() throws Exception {
+        String fileName = "testImage.png";
+        testUploadImageHelper(fileName, "image/png");
+    }
+
+    public void testUploadImageHelper(String fileName, String contentType) throws Exception {
+        // Note that this needs to respond to 2 requests.  First, there is the
+        // verify session (_status) request, then there is the main request.
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(200));
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(200)
+                .setBody(new JsonObjectBuilder()
+                        .addProperty("name", fileName)
+                        .addProperty("fileType", contentType)
+                        .addProperty("content", "/pics/assets/someplace/" + fileName)
+                        .json()));
+
+        File file = new File(this.getClass().getResource("/" + fileName).getFile());
+        VantiqResponse response = vantiq.upload(file, contentType, fileName, "/resources/images");
+
+        // We check the first request to be the session validation
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/_status"));
+        assertThat("Valid method", request.getMethod(), is("GET"));
+
+        // We check the second request to be the upload
+        request = server.takeRequest();
+        url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/images"));
+        assertThat("Valid method", request.getMethod(), is("POST"));
+
+        // Check that request has the proper headers
+        String multipartBody = request.getBody().readUtf8();
+        String pattern = "Content-Disposition: form-data; name=\"defaultName\"; filename=\"" + fileName + "\"";
+        assertThat("Valid multi-part header", multipartBody, containsString(pattern));
+
+        // Check response
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body - name", ((JsonObject) response.getBody()).get("name").getAsString(), is(fileName));
+        assertThat("Valid body - fileType", ((JsonObject) response.getBody()).get("fileType").getAsString(), is(contentType));
+    }
+
+    @Test
+    public void testUploadVideoInvalidSession() throws Exception {
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(401));
+
+        String fileName = "testVideo.mp4";
+        File file = new File(this.getClass().getResource("/" + fileName).getFile());
+        VantiqResponse response = vantiq.upload(file, "video/mp4", fileName, "/resources/videos");
+
+        // Assert that we had an invalid response
+        assertTrue("Error response", !response.isSuccess());
+        assertThat("Invalid Authentication Status", response.getStatusCode(), is(401));
+    }
+
+    @Test
+    public void testUploadVideo() throws Exception {
+        // Note that this needs to respond to 2 requests.  First, there is the
+        // verify session (_status) request, then there is the main request.
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(200));
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(200)
+                .setBody(new JsonObjectBuilder()
+                        .addProperty("name", "testVideo.mp4")
+                        .addProperty("fileType", "video/mp4")
+                        .addProperty("content", "/vids/assets/someplace/testVideo.mp4")
+                        .json()));
+
+        String fileName = "testVideo.mp4";
+        File file = new File(this.getClass().getResource("/" + fileName).getFile());
+        VantiqResponse response = vantiq.upload(file, "video/mp4", fileName, "/resources/videos");
+
+        // We check the first request to be the session validation
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/_status"));
+        assertThat("Valid method", request.getMethod(), is("GET"));
+
+        // We check the second request to be the upload
+        request = server.takeRequest();
+        url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/videos"));
+        assertThat("Valid method", request.getMethod(), is("POST"));
+
+        // Check that request has the proper headers
+        String multipartBody = request.getBody().readUtf8();
+        String pattern = "Content-Disposition: form-data; name=\"defaultName\"; filename=\"testVideo.mp4\"";
+        assertThat("Valid multi-part header", multipartBody, containsString(pattern));
+
+        // Check response
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Valid body - name", ((JsonObject) response.getBody()).get("name").getAsString(), is("testVideo.mp4"));
+        assertThat("Valid body - fileType", ((JsonObject) response.getBody()).get("fileType").getAsString(), is("video/mp4"));
+    }
 }

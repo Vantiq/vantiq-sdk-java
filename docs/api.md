@@ -31,6 +31,8 @@ SOURCES    | sources        | ArsSource    | Data sources defined in the Vantiq 
 TOPICS     | topics         | ArsTopic     | User-defined topics in the Vantiq system
 TYPES      | types          | ArsType      | Data types defined in the Vantiq system
 USERS      | users          | ArsUser      | Vantiq user accounts
+IMAGES     | images         | ArsImages    | Images stored in the Vantiq system
+VIDEOS     | videos         | ArsVideos    | Videos stored in the Vantiq system
 
 Data types defined in the Vantiq system can also be used as resources.  For example, if you define data
 type `MyNewType`, then `MyNewType` is now a legal resource name that can be used in the API methods.
@@ -1019,8 +1021,9 @@ N/A
 
 ## <a id="vantiq-upload"></a> Vantiq.upload
 
-The `upload` method performs a upload of a file into an ArsDocument resource.  The upload may be asynchronous or 
-synchronous.
+The `upload` method performs an upload of a file into a Vantiq resource. The default upload method will upload the file to 
+the ArsDocument resource, but the user may optionally specify which Vantiq resource they wish to upload to. The upload may be 
+asynchronous or synchronous.
 
 ### Signature
 
@@ -1030,6 +1033,14 @@ void vantiq.upload(File file, String contentType, String documentPath, ResponseH
 VantiqResopnse vantiq.upload(File file, String contentType, String documentPath)
 ```
 
+**OR**
+
+```java
+void vantiq.upload(File file, String contentType, String documentPath, String resourcePath, ResponseHandler responseHandler)
+
+VantiqResopnse vantiq.upload(File file, String contentType, String documentPath, String resourcePath)
+```
+
 ### Parameters
 
 Name | Type | Required | Description
@@ -1037,6 +1048,7 @@ Name | Type | Required | Description
 file | File | Yes | The file to be uploaded
 contentType | String | Yes | The MIME type of the uploaded file (e.g. "image/jpeg")
 String | documentPath | Yes | The "path" of the ArsDocument in Vantiq (e.g. "assets/myDocument.txt")
+String | resourcePath | No | The "path" of the Vantiq resource to which you wish to upload the file (e.g. `"/resources/documents"`, `"/resources/images"`, or `"/resources/videos"`) 
 
 ### Returns
 
@@ -1069,6 +1081,26 @@ vantiq.upload(myFile,
 });
 ```
 
+The following uploads an image file asynchronously, specifying that the image be stored in Vantiq as an image (instead of a 
+document), and prints out the location of the content:
+
+```java
+File myFile = ...
+    
+vantiq.upload(myFile, 
+              "image/jpeg", 
+              "myAssets/myImage.jpg",
+              "/resources/images",
+              new BaseResponseHandler() {
+              
+    @Override public void onSuccess(Object body, Response response) {
+        super.onSuccess(body, response);
+        
+        System.out.println("Content Location = " + this.getBodyAsJsonObject().get("content"));
+    }
+    
+});
+```
 
 ## <a id="vantiq-download"></a> Vantiq.download
 

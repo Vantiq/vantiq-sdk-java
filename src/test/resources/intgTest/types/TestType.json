@@ -1,11 +1,61 @@
 {
-    "name": "TestType",
-    "properties": {
-        "id": { "type": "String"   },
-        "ts": { "type": "DateTime" },
-        "x":  { "type": "Real"     },
-        "k":  { "type": "Integer"  },
-        "o":  { "type": "Object"   }
+  "adminAccessLevel" : "ars_readWrite",
+  "ars_properties" : null,
+  "audited" : false,
+  "encapsulated" : false,
+  "foreignKeys" : null,
+  "groupBy" : "",
+  "groupEnabled" : false,
+  "groupRequired" : false,
+  "indexes" : [ {
+    "keys" : [ "id" ],
+    "options" : {
+      "unique" : true
+    }
+  } ],
+  "maxObjects" : 0,
+  "maxStorage" : 0,
+  "metadata" : false,
+  "name" : "TestType",
+  "naturalKey" : [ "id" ],
+  "properties" : {
+    "id" : {
+      "encrypted" : false,
+      "multi" : false,
+      "required" : false,
+      "type" : "String",
+      "unique" : false
     },
-    "naturalKey": [ "id" ]
+    "k" : {
+      "encrypted" : false,
+      "multi" : false,
+      "required" : false,
+      "type" : "Integer",
+      "unique" : false
+    },
+    "o" : {
+      "encrypted" : false,
+      "multi" : false,
+      "required" : false,
+      "type" : "Object",
+      "unique" : false
+    },
+    "ts" : {
+      "encrypted" : false,
+      "multi" : false,
+      "required" : false,
+      "type" : "DateTime",
+      "unique" : false
+    },
+    "x" : {
+      "encrypted" : false,
+      "multi" : false,
+      "required" : false,
+      "type" : "Real",
+      "unique" : false
+    }
+  },
+  "role" : "standard",
+  "userAccessLevel" : "ars_readOnly",
+  "volatile" : false
 }

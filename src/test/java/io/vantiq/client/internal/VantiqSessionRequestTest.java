@@ -163,4 +163,104 @@ public class VantiqSessionRequestTest extends VantiqTestBase {
                                                  null);
         assertTrue("Successful response", response.isSuccess());
     }
+
+    @Test
+    public void testUploadImageJPG() throws Exception {
+        String fileName = "/testImage.jpg";
+        testUploadImageHelper(fileName, "image/jpeg");
+    }
+
+    @Test
+    public void testUploadImagePNG() throws Exception {
+        String fileName = "/testImage.png";
+        testUploadImageHelper(fileName, "image/png");
+    }
+
+    public void testUploadImageHelper(String fileName, String contentType) throws Exception {
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(200)
+                .setBody(new JsonObjectBuilder()
+                        .addProperty("a", 1.2)
+                        .addProperty("b", 2.4)
+                        .json()));
+
+        session.upload("/resources/images",
+                new File(this.getClass().getResource(fileName).getFile()),
+                contentType,
+                "Test File",
+                null,
+                handler);
+        waitForCompletion();
+        assertTrue("Successful response", handler.success);
+    }
+
+    @Test
+    public void testUploadImageJPGSync() throws Exception {
+        String fileName = "/testImage.jpg";
+        testUploadImageSyncHelper(fileName, "image/jpeg");
+    }
+
+    @Test
+    public void testUploadImagePNGSync() throws Exception {
+        String fileName = "/testImage.png";
+        testUploadImageSyncHelper(fileName, "image/png");
+    }
+
+    public void testUploadImageSyncHelper(String fileName, String contentType) throws Exception {
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(200)
+                .setBody(new JsonObjectBuilder()
+                        .addProperty("a", 1.2)
+                        .addProperty("b", 2.4)
+                        .json()));
+
+        VantiqResponse response = session.upload("/resources/images",
+                new File(this.getClass().getResource(fileName).getFile()),
+                contentType,
+                "Test File",
+                null,
+                null);
+        assertTrue("Successful response", response.isSuccess());
+    }
+
+    @Test
+    public void testUploadVideo() throws Exception {
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(200)
+                .setBody(new JsonObjectBuilder()
+                        .addProperty("a", 1.2)
+                        .addProperty("b", 2.4)
+                        .json()));
+
+        session.upload("/resources/videos",
+                new File(this.getClass().getResource("/testVideo.mp4").getFile()),
+                "video/mp4",
+                "Test File",
+                null,
+                handler);
+        waitForCompletion();
+        assertTrue("Successful response", handler.success);
+    }
+
+    @Test
+    public void testUploadVideoSync() throws Exception {
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(200)
+                .setBody(new JsonObjectBuilder()
+                        .addProperty("a", 1.2)
+                        .addProperty("b", 2.4)
+                        .json()));
+
+        VantiqResponse response = session.upload("/resources/videos",
+                new File(this.getClass().getResource("/testVideo.mp4").getFile()),
+                "video/mp4",
+                "Test File",
+                null,
+                null);
+        assertTrue("Successful response", response.isSuccess());
+    }
 }
