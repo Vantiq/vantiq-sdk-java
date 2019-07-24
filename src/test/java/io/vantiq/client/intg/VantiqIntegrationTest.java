@@ -373,7 +373,6 @@ public class VantiqIntegrationTest {
         assertThat("Valid response", handler.getBodyAsJsonObject().get("arg2").getAsString(), is("xxx"));
     }
     
-    @Ignore
     @Test
     public void testSubscribeTopic() throws Exception {
         UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
@@ -419,7 +418,6 @@ public class VantiqIntegrationTest {
         assertThat("Body Path", (String) respBody.get("path"), is("/sources/JSONPlaceholder/receive"));
     }
 
-    @Ignore
     @Test
     public void testSubscribeType() throws Exception {
         UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
