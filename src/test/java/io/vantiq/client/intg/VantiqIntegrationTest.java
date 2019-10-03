@@ -518,8 +518,65 @@ public class VantiqIntegrationTest {
         assertThat("Message received", callback.hasFired(), is(true));
         assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/topics/test/topic"));
         callback.reset();
-        
-        
+    }
+
+    @Test
+    public void testAcknowledgeReliableTopic() throws Exception {
+
+        Map<String,Object> topic = new HashMap<String,Object>();
+        topic.put("name", "/test/topic");
+        topic.put("description", "topic description");
+        topic.put("isReliable", true);
+        topic.put("redeliveryFrequency", 5);
+        topic.put("redeliveryTTL", 100);
+
+        VantiqResponse t = vantiq.upsert("system.topics", topic);
+        assertThat("Valid insert", t.isSuccess(), is(true));
+        Map<String, Object> params = new HashMap<String, Object>() ;
+        params.put("persistent", true);
+
+        UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
+
+        // Subscribe to topic
+        vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
+        callback.waitForCompletion();
+        LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
+        String ackId = msg.get("subscriptionId").toString();
+        String requestId = msg.get("requestId").toString();
+        callback.reset();
+        callback.waitForCompletion();
+        assertThat("Connected", callback.isConnected(), is(true));
+        callback.reset();
+
+        // Synchronously publish to the topic
+        Map body = new HashMap();
+        body.put("time", new Date());
+        VantiqResponse r = vantiq.publish("topics", "/test/topic", body);
+        assertThat("Valid publish", r.isSuccess(), is(true));
+
+        // Wait for the message
+        callback.waitForCompletion();
+        assertThat("Message received", callback.hasFired(), is(true));
+        assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/topics/test/topic"));
+
+        Map respBody = (Map) callback.getMessage().getBody();
+        assertThat("Body Path", (String) respBody.get("path"), is("/topics/test/topic/publish"));
+
+        callback.reset();
+        vantiq.ack(ackId, requestId, respBody);
+        waitForCompletion();
+        respBody = (Map) callback.getMessage().getBody();
+        while (respBody.get("ack") == null) {
+            callback.reset();
+            waitForCompletion();
+            try {
+            respBody = (Map) callback.getMessage().getBody();}
+        }
+
+        assertThat("Body Path", (Boolean) respBody.get("ack"), is(true));
+
+
+
     }
     
     @Test

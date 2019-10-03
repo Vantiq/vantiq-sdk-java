@@ -71,7 +71,7 @@ public class UnitTestSubscriptionCallback implements SubscriptionCallback {
     }
 
     public synchronized void waitForCompletion() throws InterruptedException {
-        waitForCompletion(2000);
+        waitForCompletion(5000);
     }
 
     public void reset() {

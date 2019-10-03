@@ -80,6 +80,28 @@ public class VantiqSubscriber implements WebSocketListener {
             new VantiqSubscriptionRequest(path, accessToken, null);
         }
     }
+
+    private static class VantiqAcknowledgementRequest {
+        public String op = "acknowledge";
+        public String resourceName = "events";
+        public String resourceId;
+        public String accessToken;
+        public Map<String,Object> parameters = new HashMap<String,Object>();
+
+        public VantiqAcknowledgementRequest(String path, String accessToken, Map<String, Object> parameters) {
+            this.resourceId = path;
+            if (parameters != null) {
+                this.parameters.putAll(parameters);
+            }
+            this.parameters.put("requestId", path);
+
+            this.accessToken = accessToken;
+        }
+
+        public VantiqAcknowledgementRequest(String path, String accessToken) {
+            new VantiqSubscriptionRequest(path, accessToken, null);
+        }
+    } 
     public void subscribe(String path, SubscriptionCallback callback, Map<String, Object> parameters) {
         if (!this.wsauthenticated) {
             throw new IllegalStateException("Must be connected to subscribe to events");
@@ -104,6 +126,17 @@ public class VantiqSubscriber implements WebSocketListener {
     
     public void subscribe(String path, SubscriptionCallback callback) {
         subscribe(path, callback, null);
+    }
+
+    public void ack(String requestId, String subscriptionId, Double sequenceId, Double partitionId) throws IOException {
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("subscriptionId", subscriptionId);
+        params.put("sequenceId", sequenceId);
+        params.put("partitionId", partitionId);
+        VantiqAcknowledgementRequest request =
+                new VantiqAcknowledgementRequest(requestId, this.session.getAccessToken(), params);
+        String body = VantiqSession.gson.toJson(request);
+        this.webSocket.sendMessage(RequestBody.create(WebSocket.TEXT, body));
     }
 
     public void close() {
@@ -216,6 +249,7 @@ public class VantiqSubscriber implements WebSocketListener {
                 requestId = msg.getHeaders().get("X-Request-Id");
                 callback = this.callbacks.get(requestId);
                 isSubscribed = this.subscribed.get(requestId);
+               
             }
 
             if (this.wsauthenticated) {

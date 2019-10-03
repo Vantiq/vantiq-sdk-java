@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -895,6 +896,16 @@ public class VantiqSession {
         subscribe(path, callback, enablePings, null);
     }
 
+
+    /**Acknowledge the receipt of a reliable message*/
+    public void ack(String requestId, String subscriptionId, Double sequenceId, Double partitionId) throws IOException {
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("subscriptionId", subscriptionId);
+        params.put("sequenceId", sequenceId);
+        params.put("partitionId", partitionId);
+        this.subscriber.ack(requestId, subscriptionId, sequenceId, partitionId);
+    }
+    
     /**
      * Unsubscribes to all current subscriptions by closing the WebSocket to the Vantiq
      * server.
@@ -912,5 +923,6 @@ public class VantiqSession {
     public void close() {
         this.subscriber.close();
         this.subscriber = null;
+
     }
 }

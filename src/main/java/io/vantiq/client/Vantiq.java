@@ -1375,6 +1375,13 @@ public class Vantiq {
         this.session.subscribe(path, callback, this.enablePings, parameters);
     }
     
+    /**Acknowledge the receipt of a reliable message*/
+    public void ack(String subscriptionId, String requestId, Map msg) throws IOException {
+        Double sequenceId = (double) msg.get("sequenceId") ;
+        Double partitionId = (double) msg.get("partitionId");
+        this.session.ack(requestId, subscriptionId, sequenceId, partitionId);
+    }
+    
     public void subscribe(String resource,
                                String id,
                                TypeOperation operation,
@@ -1384,7 +1391,8 @@ public class Vantiq {
     }
 
     /**
-     * Unsubscribes to all current subscriptions by closing the WebSocket to the Vantiq
+     * Un
+     * s to all current subscriptions by closing the WebSocket to the Vantiq
      * server.
      */
     public void unsubscribeAll() {
