@@ -1,7 +1,9 @@
 package io.vantiq.client.intg;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.google.gson.internal.LinkedTreeMap;
 import io.vantiq.client.*;
 import okio.*;
 import org.junit.*;
@@ -31,23 +33,24 @@ public class VantiqIntegrationTest {
     private static String server   = null;
     private static String username = null;
     private static String password = null;
-
+    private static String token = null;
     @BeforeClass
     public static void setUpIntgTest() throws Exception {
         // Pull values from java properties, so the credentials are not checked in
-        server   = System.getProperty("server");
+        server = System.getProperty("server");
         username = System.getProperty("username");
         password = System.getProperty("password");
-
-        if(server == null || username == null || password == null) {
-            throw new IllegalStateException("Must set 'server', 'username', and 'password' Java System Properties");
-        }
+        token = "n7ZEcMeY4iCWaeJ3iWmsJJIDIWEkuvhEgsIdoTYIYKs=";
     }
 
     @Before
     public void setUp() throws Exception {
         vantiq = new Vantiq(server);
-        vantiq.authenticate(username, password, handler);
+        if (!username.equals("") && !password.equals("")) {
+            vantiq.authenticate(username, password);
+        } else {
+            vantiq.setAccessToken(token);
+        }
         waitForCompletion();
         assertThat("Authenticated: " + handler, vantiq.isAuthenticated(), is(true));
         handler.reset();
@@ -397,7 +400,52 @@ public class VantiqIntegrationTest {
         Map respBody = (Map) callback.getMessage().getBody();
         assertThat("Body Path", (String) respBody.get("path"), is("/topics/test/topic/publish"));
     }
+    
 
+    @Test
+    public void testSubscribeReliableTopic() throws Exception {
+
+        Map<String,Object> topic = new HashMap<String,Object>();
+        topic.put("name", "/test/topic");
+        topic.put("description", "topic description");
+        topic.put("isReliable", true);
+        topic.put("redeliveryFrequency", 5);
+        topic.put("redeliveryTTL", 10);
+
+
+        VantiqResponse t = vantiq.insert("system.topics", topic);
+        assertThat("Valid insert", t.isSuccess(), is(true));
+        Map<String, Object> params = new HashMap<String, Object>() ;
+        params.put("persistent", true);
+
+        UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
+
+        // Subscribe to topic
+        vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
+        callback.waitForCompletion();
+        LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
+        String ackId = msg.get("subscriptionId").toString();
+        String requestId = msg.get("requestId").toString();
+        callback.reset();
+        callback.waitForCompletion();
+        assertThat("Connected", callback.isConnected(), is(true));
+        callback.reset();
+
+        // Synchronously publish to the topic
+        Map body = new HashMap();
+        body.put("time", new Date());
+        VantiqResponse r = vantiq.publish("topics", "/test/topic", body);
+        assertThat("Valid publish", r.isSuccess(), is(true));
+
+        // Wait for the message
+        callback.waitForCompletion();
+        assertThat("Message received", callback.hasFired(), is(true));
+        assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/topics//test/topic"));
+
+        Map respBody = (Map) callback.getMessage().getBody();
+        assertThat("Body Path", (String) respBody.get("path"), is("/topics/test/topic/publish"));
+    }
+    
     @Test
     @Ignore("Setup JSONPlaceholder polling Source and run this test explicitly")
     public void testSubscribeSource() throws Exception {

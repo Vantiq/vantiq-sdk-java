@@ -1348,11 +1348,12 @@ public class Vantiq {
     public void subscribe(String resource,
                           String id,
                           TypeOperation operation,
-                          SubscriptionCallback callback) {
+                          SubscriptionCallback callback,
+                          Map<String, Object> parameters) {
 
         String path = "/" + resource + "/" + id;
         if(SystemResources.SOURCES.value().equals(resource) ||
-           SystemResources.TOPICS.value().equals(resource)) {
+                SystemResources.TOPICS.value().equals(resource)) {
             if(operation != null) {
                 throw new IllegalArgumentException("Operation only support for 'types'");
             }
@@ -1365,7 +1366,15 @@ public class Vantiq {
             throw new IllegalArgumentException("Only 'topics', 'sources' and 'types' support subscribe");
         }
 
-        this.session.subscribe(path, callback, this.enablePings);
+        this.session.subscribe(path, callback, this.enablePings, parameters);
+    }
+    
+    public void subscribe(String resource,
+                               String id,
+                               TypeOperation operation,
+                               SubscriptionCallback callback) {
+
+       subscribe(resource, id, operation, callback, null);
     }
 
     /**

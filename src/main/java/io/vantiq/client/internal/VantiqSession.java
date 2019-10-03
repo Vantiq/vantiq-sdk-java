@@ -854,7 +854,8 @@ public class VantiqSession {
      */
     public void subscribe(final String path,
                           final SubscriptionCallback callback,
-                          boolean enablePings) {
+                          boolean enablePings,
+                          final Map<String, Object> parameters) {
         if(!this.isAuthenticated()) {
             throw new IllegalStateException("Not authenticated");
         }
@@ -864,7 +865,7 @@ public class VantiqSession {
             this.subscriber.connect(new VantiqSubscriberLifecycleListener() {
                 @Override
                 public void onConnect() {
-                    VantiqSession.this.subscriber.subscribe(path, callback);
+                    VantiqSession.this.subscriber.subscribe(path, callback, parameters);
                 }
 
                 @Override
@@ -883,8 +884,14 @@ public class VantiqSession {
                 }
             });
         } else {
-            this.subscriber.subscribe(path, callback);
+            this.subscriber.subscribe(path, callback, parameters);
         }
+    }
+    
+    public void subscribe(final String path,
+                          final SubscriptionCallback callback,
+                          boolean enablePings) {
+        subscribe(path, callback, enablePings, null);
     }
 
     /**

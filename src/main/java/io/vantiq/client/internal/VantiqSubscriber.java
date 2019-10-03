@@ -64,16 +64,23 @@ public class VantiqSubscriber implements WebSocketListener {
         public String resourceName = "events";
         public String resourceId;
         public String accessToken;
-        public Map<String,String> parameters = new HashMap<String,String>();
+        public Map<String,Object> parameters = new HashMap<String,Object>();
 
-        public VantiqSubscriptionRequest(String path, String accessToken) {
+        public VantiqSubscriptionRequest(String path, String accessToken, Map<String, Object> parameters) {
             this.resourceId = path;
+            if (parameters != null) {
+                this.parameters.putAll(parameters);
+            }
             this.parameters.put("requestId", path);
+
             this.accessToken = accessToken;
         }
+        
+        public VantiqSubscriptionRequest(String path, String accessToken) {
+            new VantiqSubscriptionRequest(path, accessToken, null);
+        }
     }
-
-    public void subscribe(String path, SubscriptionCallback callback) {
+    public void subscribe(String path, SubscriptionCallback callback, Map<String, Object> parameters) {
         if (!this.wsauthenticated) {
             throw new IllegalStateException("Must be connected to subscribe to events");
         }
@@ -87,12 +94,16 @@ public class VantiqSubscriber implements WebSocketListener {
 
         try {
             VantiqSubscriptionRequest request =
-                new VantiqSubscriptionRequest(path, this.session.getAccessToken());
+                    new VantiqSubscriptionRequest(path, this.session.getAccessToken(), parameters);
             String body = VantiqSession.gson.toJson(request);
             this.webSocket.sendMessage(RequestBody.create(WebSocket.TEXT, body));
         } catch(IOException ex) {
             callback.onFailure(ex);
         }
+    }
+    
+    public void subscribe(String path, SubscriptionCallback callback) {
+        subscribe(path, callback, null);
     }
 
     public void close() {
@@ -224,6 +235,8 @@ public class VantiqSubscriber implements WebSocketListener {
                         if(msg.getStatus() == 200) {
                             this.subscribed.put(requestId, Boolean.TRUE);
                             callback.onConnect();
+                        } else if (msg.getStatus() == 100) {
+g                            callback.onMessage(msg);
                         } else {
                             callback.onError("Error subscribing to '" + requestId + "'");
                         }
