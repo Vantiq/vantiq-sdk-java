@@ -40,7 +40,7 @@ public class VantiqIntegrationTest {
         server = System.getProperty("server");
         username = System.getProperty("username");
         password = System.getProperty("password");
-        token = "n7ZEcMeY4iCWaeJ3iWmsJJIDIWEkuvhEgsIdoTYIYKs=";
+        token = System.getProperty("token");
     }
 
     @Before
@@ -569,14 +569,10 @@ public class VantiqIntegrationTest {
         while (respBody.get("ack") == null) {
             callback.reset();
             waitForCompletion();
-            try {
-            respBody = (Map) callback.getMessage().getBody();}
+            respBody = (Map) callback.getMessage().getBody();
         }
 
         assertThat("Body Path", (Boolean) respBody.get("ack"), is(true));
-
-
-
     }
     
     @Test
