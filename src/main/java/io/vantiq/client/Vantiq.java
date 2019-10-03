@@ -1351,7 +1351,13 @@ public class Vantiq {
                           SubscriptionCallback callback,
                           Map<String, Object> parameters) {
 
-        String path = "/" + resource + "/" + id;
+        String path;
+        if (SystemResources.TOPICS.value().equals(resource)) {
+            path = "/" + resource  + id;
+
+        } else {
+            path = "/" + resource + "/" + id;
+        }
         if(SystemResources.SOURCES.value().equals(resource) ||
                 SystemResources.TOPICS.value().equals(resource)) {
             if(operation != null) {
@@ -1383,6 +1389,11 @@ public class Vantiq {
      */
     public void unsubscribeAll() {
         this.session.unsubscribeAll();
+    }
+
+    /** Closes the websocket to Vantiq */
+    public void closeWebsocket() {
+        this.session.close();
     }
 
     //----------------------------------------------------------------------------------

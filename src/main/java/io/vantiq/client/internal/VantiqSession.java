@@ -881,6 +881,7 @@ public class VantiqSession {
                 @Override
                 public void onClose() {
                     // No-op
+                    Integer x = 1;
                 }
             });
         } else {
@@ -903,5 +904,13 @@ public class VantiqSession {
             this.subscriber.close();
             this.subscriber = null;
         }
+    }
+
+    /**
+     * Closes the WebSocket to the Vantiq server.
+     */
+    public void close() {
+        this.subscriber.close();
+        this.subscriber = null;
     }
 }
