@@ -889,12 +889,6 @@ public class VantiqSession {
             this.subscriber.subscribe(path, callback, parameters);
         }
     }
-    
-    public void subscribe(final String path,
-                          final SubscriptionCallback callback,
-                          boolean enablePings) {
-        subscribe(path, callback, enablePings, null);
-    }
 
 
     /**Acknowledge the receipt of a reliable message*/

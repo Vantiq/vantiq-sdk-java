@@ -123,10 +123,6 @@ public class VantiqSubscriber implements WebSocketListener {
             callback.onFailure(ex);
         }
     }
-    
-    public void subscribe(String path, SubscriptionCallback callback) {
-        subscribe(path, callback, null);
-    }
 
     public void ack(String requestId, String subscriptionId, Double sequenceId, Double partitionId) throws IOException {
         Map<String, Object> params = new HashMap<String, Object>();
