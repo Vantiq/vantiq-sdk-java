@@ -34,10 +34,11 @@ public class VantiqIntegrationTest {
     private static String username = null;
     private static String password = null;
     private static String token = null;
+    
     @BeforeClass
     public static void setUpIntgTest() throws Exception {
         // Pull values from java properties, so the credentials are not checked in
-        server = System.getProperty("server");
+        server   = System.getProperty("server");
         username = System.getProperty("username");
         password = System.getProperty("password");
         token = System.getProperty("token");
@@ -395,7 +396,7 @@ public class VantiqIntegrationTest {
         // Wait for the message
         callback.waitForCompletion();
         assertThat("Message received", callback.hasFired(), is(true));
-        assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/topics//test/topic"));
+        assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/topics/test/topic"));
 
         Map respBody = (Map) callback.getMessage().getBody();
         assertThat("Body Path", (String) respBody.get("path"), is("/topics/test/topic/publish"));
@@ -565,14 +566,10 @@ public class VantiqIntegrationTest {
         callback.reset();
         vantiq.ack(ackId, requestId, respBody);
         waitForCompletion();
-        respBody = (Map) callback.getMessage().getBody();
-        while (respBody.get("ack") == null) {
-            callback.reset();
-            waitForCompletion();
-            respBody = (Map) callback.getMessage().getBody();
-        }
-
-        assertThat("Body Path", (Boolean) respBody.get("ack"), is(true));
+        HashMap<String,String> where = new HashMap<String,String>();
+        where.put("subscriptionId", ackId);
+        
+        vantiq.select("ArsEventAcknowledgement", null, where, null);
     }
     
     @Test

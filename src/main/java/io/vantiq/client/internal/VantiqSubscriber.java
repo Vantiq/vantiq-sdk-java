@@ -72,12 +72,7 @@ public class VantiqSubscriber implements WebSocketListener {
                 this.parameters.putAll(parameters);
             }
             this.parameters.put("requestId", path);
-
             this.accessToken = accessToken;
-        }
-        
-        public VantiqSubscriptionRequest(String path, String accessToken) {
-            new VantiqSubscriptionRequest(path, accessToken, null);
         }
     }
 
@@ -96,10 +91,6 @@ public class VantiqSubscriber implements WebSocketListener {
             this.parameters.put("requestId", path);
 
             this.accessToken = accessToken;
-        }
-
-        public VantiqAcknowledgementRequest(String path, String accessToken) {
-            new VantiqSubscriptionRequest(path, accessToken, null);
         }
     } 
     public void subscribe(String path, SubscriptionCallback callback, Map<String, Object> parameters) {
@@ -245,7 +236,6 @@ public class VantiqSubscriber implements WebSocketListener {
                 requestId = msg.getHeaders().get("X-Request-Id");
                 callback = this.callbacks.get(requestId);
                 isSubscribed = this.subscribed.get(requestId);
-               
             }
 
             if (this.wsauthenticated) {

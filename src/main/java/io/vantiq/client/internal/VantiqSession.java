@@ -882,7 +882,6 @@ public class VantiqSession {
                 @Override
                 public void onClose() {
                     // No-op
-                    Integer x = 1;
                 }
             });
         } else {
