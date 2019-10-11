@@ -1371,8 +1371,15 @@ public class Vantiq {
         } else {
             throw new IllegalArgumentException("Only 'topics', 'sources' and 'types' support subscribe");
         }
-
         this.session.subscribe(path, callback, this.enablePings, parameters);
+    }
+
+    public void subscribe(String resource,
+                          String id,
+                          TypeOperation operation,
+                          SubscriptionCallback callback) {
+
+        subscribe(resource, id, operation, callback, null);
     }
     
     /**Acknowledge the receipt of a reliable message*/
@@ -1382,17 +1389,9 @@ public class Vantiq {
         this.session.ack(requestId, subscriptionId, sequenceId, partitionId);
     }
     
-    public void subscribe(String resource,
-                               String id,
-                               TypeOperation operation,
-                               SubscriptionCallback callback) {
-
-       subscribe(resource, id, operation, callback, null);
-    }
 
     /**
-     * Un
-     * s to all current subscriptions by closing the WebSocket to the Vantiq
+     * Unsubscribes to all current subscriptions by closing the WebSocket to the Vantiq
      * server.
      */
     public void unsubscribeAll() {
@@ -1403,7 +1402,6 @@ public class Vantiq {
     public void closeWebsocket() {
         this.session.close();
     }
-
     //----------------------------------------------------------------------------------
     // Accessors
     //----------------------------------------------------------------------------------
