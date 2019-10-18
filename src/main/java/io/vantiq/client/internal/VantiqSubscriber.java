@@ -93,6 +93,7 @@ public class VantiqSubscriber implements WebSocketListener {
             this.accessToken = accessToken;
         }
     } 
+    
     public void subscribe(String path, SubscriptionCallback callback, Map<String, Object> parameters) {
         if (!this.wsauthenticated) {
             throw new IllegalStateException("Must be connected to subscribe to events");

@@ -42,6 +42,12 @@ public class VantiqIntegrationTest {
         username = System.getProperty("username");
         password = System.getProperty("password");
         token = System.getProperty("token");
+        
+        Boolean missingUserPass = (username == null || password == null);
+        Boolean missingToken = token == null;
+        if(server == null || (missingUserPass && missingToken)) {
+            throw new IllegalStateException("Must set 'server', 'username', and 'password', or 'token' Java System Properties");
+        }
     }
 
     @Before
@@ -49,8 +55,10 @@ public class VantiqIntegrationTest {
         vantiq = new Vantiq(server);
         if (!username.equals("") && !password.equals("")) {
             vantiq.authenticate(username, password);
-        } else {
+        } else if (!username.equals("")) {
             vantiq.setAccessToken(token);
+        } else {
+            throw new IllegalStateException("Must set 'server', 'username', and 'password', or 'token' Java System Properties");
         }
         waitForCompletion();
         assertThat("Authenticated: " + handler, vantiq.isAuthenticated(), is(true));

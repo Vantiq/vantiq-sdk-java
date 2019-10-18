@@ -1382,7 +1382,9 @@ public class Vantiq {
         subscribe(resource, id, operation, callback, null);
     }
     
-    /**Acknowledge the receipt of a reliable message*/
+    /**
+     * Acknowledge the receipt of a reliable message
+     * */
     public void ack(String subscriptionId, String requestId, Map msg) throws IOException {
         Double sequenceId = (double) msg.get("sequenceId") ;
         Double partitionId = (double) msg.get("partitionId");
