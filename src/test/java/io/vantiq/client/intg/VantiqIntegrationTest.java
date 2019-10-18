@@ -424,7 +424,7 @@ public class VantiqIntegrationTest {
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
         callback.waitForCompletion();
         LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
-        String ackId = msg.get("subscriptionId").toString();
+        String ackId = msg.get("subscriptionName").toString();
         String requestId = msg.get("requestId").toString();
         callback.reset();
         callback.waitForCompletion();
@@ -476,7 +476,7 @@ public class VantiqIntegrationTest {
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
         callback.waitForCompletion();
         LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
-        String ackId = msg.get("subscriptionId").toString();
+        String ackId = msg.get("subscriptionName").toString();
         String requestId = msg.get("requestId").toString();
         callback.reset();
         callback.waitForCompletion();
@@ -542,7 +542,7 @@ public class VantiqIntegrationTest {
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
         callback.waitForCompletion();
         LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
-        String ackId = msg.get("subscriptionId").toString();
+        String ackId = msg.get("subscriptionName").toString();
         String requestId = msg.get("requestId").toString();
         callback.reset();
         callback.waitForCompletion();
@@ -567,7 +567,7 @@ public class VantiqIntegrationTest {
         vantiq.ack(ackId, requestId, respBody);
         waitForCompletion();
         HashMap<String,String> where = new HashMap<String,String>();
-        where.put("subscriptionId", ackId);
+        where.put("subscriptionName", ackId);
         
         vantiq.select("ArsEventAcknowledgement", null, where, null);
     }

@@ -7,5 +7,6 @@
     "k":  { "type": "Integer"  },
     "o":  { "type": "Object"   }
   },
-  "naturalKey": [ "id" ]
+  "naturalKey": [ "id" ],
+   "indexes": [{"keys": ["id"], "options": {"unique": true}}]
 }
