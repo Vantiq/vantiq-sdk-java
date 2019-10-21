@@ -1348,11 +1348,18 @@ public class Vantiq {
     public void subscribe(String resource,
                           String id,
                           TypeOperation operation,
-                          SubscriptionCallback callback) {
+                          SubscriptionCallback callback,
+                          Map<String, Object> parameters) {
 
-        String path = "/" + resource + "/" + id;
+        String path;
+        if (SystemResources.TOPICS.value().equals(resource)) {
+            path = "/" + resource  + id;
+
+        } else {
+            path = "/" + resource + "/" + id;
+        }
         if(SystemResources.SOURCES.value().equals(resource) ||
-           SystemResources.TOPICS.value().equals(resource)) {
+                SystemResources.TOPICS.value().equals(resource)) {
             if(operation != null) {
                 throw new IllegalArgumentException("Operation only support for 'types'");
             }
@@ -1364,9 +1371,26 @@ public class Vantiq {
         } else {
             throw new IllegalArgumentException("Only 'topics', 'sources' and 'types' support subscribe");
         }
-
-        this.session.subscribe(path, callback, this.enablePings);
+        this.session.subscribe(path, callback, this.enablePings, parameters);
     }
+
+    public void subscribe(String resource,
+                          String id,
+                          TypeOperation operation,
+                          SubscriptionCallback callback) {
+
+        subscribe(resource, id, operation, callback, null);
+    }
+    
+    /**
+     * Acknowledge the receipt of a reliable message
+     * */
+    public void ack(String subscriptionId, String requestId, Map msg) throws IOException {
+        Double sequenceId = (double) msg.get("sequenceId") ;
+        Double partitionId = (double) msg.get("partitionId");
+        this.session.ack(requestId, subscriptionId, sequenceId, partitionId);
+    }
+    
 
     /**
      * Unsubscribes to all current subscriptions by closing the WebSocket to the Vantiq
@@ -1376,6 +1400,10 @@ public class Vantiq {
         this.session.unsubscribeAll();
     }
 
+    /** Closes the websocket to Vantiq */
+    public void closeWebsocket() {
+        this.session.close();
+    }
     //----------------------------------------------------------------------------------
     // Accessors
     //----------------------------------------------------------------------------------

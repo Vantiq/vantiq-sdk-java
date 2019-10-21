@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -854,7 +855,8 @@ public class VantiqSession {
      */
     public void subscribe(final String path,
                           final SubscriptionCallback callback,
-                          boolean enablePings) {
+                          boolean enablePings,
+                          final Map<String, Object> parameters) {
         if(!this.isAuthenticated()) {
             throw new IllegalStateException("Not authenticated");
         }
@@ -864,7 +866,7 @@ public class VantiqSession {
             this.subscriber.connect(new VantiqSubscriberLifecycleListener() {
                 @Override
                 public void onConnect() {
-                    VantiqSession.this.subscriber.subscribe(path, callback);
+                    VantiqSession.this.subscriber.subscribe(path, callback, parameters);
                 }
 
                 @Override
@@ -883,10 +885,20 @@ public class VantiqSession {
                 }
             });
         } else {
-            this.subscriber.subscribe(path, callback);
+            this.subscriber.subscribe(path, callback, parameters);
         }
     }
 
+
+    /**Acknowledge the receipt of a reliable message*/
+    public void ack(String requestId, String subscriptionId, Double sequenceId, Double partitionId) throws IOException {
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("subscriptionId", subscriptionId);
+        params.put("sequenceId", sequenceId);
+        params.put("partitionId", partitionId);
+        this.subscriber.ack(requestId, subscriptionId, sequenceId, partitionId);
+    }
+    
     /**
      * Unsubscribes to all current subscriptions by closing the WebSocket to the Vantiq
      * server.
@@ -896,5 +908,14 @@ public class VantiqSession {
             this.subscriber.close();
             this.subscriber = null;
         }
+    }
+
+    /**
+     * Closes the WebSocket to the Vantiq server.
+     */
+    public void close() {
+        this.subscriber.close();
+        this.subscriber = null;
+
     }
 }
