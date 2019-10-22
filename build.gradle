@@ -4,7 +4,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1+'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.4'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.1.0'
     }
 }
 
@@ -51,6 +51,7 @@ task intgTest(type:Test) {
     systemProperties['server']   = System.getProperty('server')
     systemProperties['username'] = System.getProperty('username')
     systemProperties['password'] = System.getProperty('password')
+    systemProperties['token'] = System.getProperty('token')
     useJUnit {
         includeCategories 'io.vantiq.client.intg.IntegrationTests'
     }
