@@ -1177,8 +1177,8 @@ os.close();
 
 ## <a id="vantiq-acknowledge"></a> Vantiq.acknowledge
 
-The `acknowledge` method is used to acknowledge the receipt of messages from reliable resources.  The provided
-callback is executed whenever a matching event occurs.
+The `acknowledge` method is used to acknowledge the receipt of messages from reliable resources after creating a persistent subscription.
+ The provided callback is executed whenever a matching event occurs.
 
 ### Signature
 
@@ -1216,13 +1216,14 @@ public class AcknowledgingOutputCallback implements SubscriptionCallback {
 
     @Override
     public void onMessage(SubscriptionMessage message) {
-        //Callback from the subscription creation
+        //Server response with subscription information (not a topic event)
         if (message.body.subscriptionName) {
             this.subscriptionName = message.body.subscriptionName;
             this.requestId = message.body.requestId;
             System.out.println("SubscriptionName " + this.subscriptionName);
             System.out.println("RequestId " + this.requestId);
         } else {
+            //message.body is an event on the subscribed topic. Acknowledge that we received the event
             vantiq.ack(this.subscriptionName, this.requestId, message.body);
         }
     }
