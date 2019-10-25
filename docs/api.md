@@ -60,6 +60,7 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
 * [unsubscribeAll](#user-content-vantiq-unsubscribeAll)
 * [upload](#user-content-vantiq-upload)
 * [download](#user-content-vantiq-download)
+* [acknowledge](#user-content-vantiq-acknowledge)
 
 All Vantiq SDK methods have both an asynchronous form and a
 synchronous form.  The asynchronous form requires a response
@@ -114,7 +115,7 @@ Vantiq vantiq = new Vantiq(String server[, int apiVersion])
 
 ### Option Parameters
 
-`String server`:  (*Required*) Specifies the VANTIQ server URL to connect to, e.g. `https://dev.vantiq.com` 
+**`String server`**:  (*Required*) Specifies the VANTIQ server URL to connect to, e.g. `https://dev.vantiq.com` 
 
 `int apiVersion` Integer to specify the version of the API to use.  Defaults to the latest. 
 
@@ -148,7 +149,7 @@ VantiqResponse vantiq.authenticate(String username, String password)
 
 `String username`: (*Required*) The username to provide access to the Vantiq server 
 
-`String password`:  (*Required* The password to provide access to the Vantiq server 
+`String password`:  (*Required*) The password to provide access to the Vantiq server 
 
 `ResponseHandler handler`:  (*Required*) A ResponseHandler that is called upon success or failure 
 
@@ -909,25 +910,25 @@ void vantiq.subscribe(String resource, String name, TypeOperation operation, Sub
 
 ### Parameters
 
-`resource`: (*Required*) Describes the type of event being subscribed to. 
+`String resource`: (*Required*) Describes the type of event being subscribed to. 
 Must be either SystemResources.TOPICS.value(), SystemResources.SOURCES.value() or SystemResources.TYPES.value().
 
-`name`: (*Required*) A required String that identifies the specific resource event. For topics, this is the topic name (e.g. '/my/topic/'). 
+`String name`: (*Required*) A required String that identifies the specific resource event. For topics, this is the topic name (e.g. '/my/topic/'). 
  For sources, this is the source name.  For types, this is the data type name (e.g. TypeOperation.INSERT, TypeOperation.UPDATE, TypeOperation.DELETE)
 
-`operation`: (*Required for Type events* )Only required for type events. Specifies the operation to listen to 
+`TypeOperation operation`: (*Required for Type events* )Only required for type events. Specifies the operation to listen to 
 (e.g. TypeOperation.INSERT, TypeOperation.UPDATE, TypeOperation.DELETE)
 
-`callback`: (*Required*) SubscriptionCallback that is executed when the specified event occurs.
+`SubscriptionCallback callback`: (*Required*) SubscriptionCallback that is executed when the specified event occurs.
  
-`parameters`: Not required map specifying extra details about the subscription to the server.
+`Map parameters`: Not required map specifying extra details about the subscription to the server.
   (eg: {persistent:true} to create a persistent subscription,
    {persistent:true: subscriptionName: 'mySub', requestId: requestId} to reconnect to a broken persistent subscription)
   
 
    
-####SubscriptionCallback and SubscriptionMessage
-   
+<br/>   
+
 The `SubscriptionCallback` interface contains 4 methods:
 
 `onConnect()`: Method called once the connection has been established and the subscription has been acknowledged by the Vantiq server.
@@ -1172,6 +1173,95 @@ while((int len = source.read(buf)) != -1) {
 
 os.close();
 ```
+
+## <a id="vantiq-acknowledge"></a> Vantiq.acknowledge
+
+The `acknowledge` method is used to acknowledge the receipt of messages from reliable resources.  The provided
+callback is executed whenever a matching event occurs.
+
+### Signature
+
+```java
+void vantiq.ack(String subscriptionName, String requestId, Map msg)
+```
+
+### Parameters
+
+`String subscriptionName`: (*Required*) The name of the subscription that uniquely identifies the persistent subscription.
+This was returned by the server on creation of the persistent subscription. 
+
+`String requestId`: (*Required*) The id of the requestId that that uniquely identifies the websocket requests made by this subscription.
+This was returned by the server on creation of the persistent subscription. 
+
+`Map msg`: (*Required*) The message in the event being acknowledged. This is the body of the SubscriptionMessage
+  
+
+### Returns
+
+N/A
+
+### Example
+
+Create a callback that acknowledges events as they arrive.
+```
+public class AcknowledgingOutputCallback implements SubscriptionCallback {
+   private String subscriptionName;
+   private String requestId;
+
+    @Override
+    public void onConnect() {
+        System.out.println("Connected Successfully");
+    }
+
+    @Override
+    public void onMessage(SubscriptionMessage message) {
+        //Callback from the subscription creation
+        if (message.body.subscriptionName) {
+            this.subscriptionName = message.body.subscriptionName;
+            this.requestId = message.body.requestId;
+            System.out.println("SubscriptionName " + this.subscriptionName);
+            System.out.println("RequestId " + this.requestId);
+        } else {
+            vantiq.ack(this.subscriptionName, this.requestId, message.body);
+        }
+    }
+
+    @Override
+    public void onError(String error) {
+        System.out.println("Error: " + error);
+    }
+
+    @Override
+    public void onFailure(Throwable t) {
+        t.printStackTrace();
+    }
+}
+
+```
+Create a persistent subscription  to the `/test/topic` reliable topic that acknowledges when events are published to the topic.
+
+    vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), 
+                     "/test/topic", 
+                     null, 
+                     new AcknowledgingOutputCallback(),
+                     {persistent: true});
+                     
+  
+
+Create a subscription to the `MySource` reliable source that prints out when messages arrive at the source.
+
+    vantiq.subscribe(Vantiq.SystemResources.SOURCES.value(), 
+                     "MySource", 
+                     null, 
+                     new StandardOutputCallback(),
+                      {persistent: true});
+
+To reconnect to a severed persistent subscription.
+    vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), 
+                     "/test/topic", 
+                     null, 
+                     new AcknowledgingOutputCallback(),
+                     {persistent: true, subscriptionName: subscriptionName, requestId: requestsId});
 
 
 
