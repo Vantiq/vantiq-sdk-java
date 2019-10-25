@@ -197,7 +197,7 @@ VantiqResponse vantiq.select(String resource,
 
 ### Parameters
 
-**`String resource`:  (*Required*) The name of the resource type to query.
+**`String resource`**:  (*Required*) The name of the resource type to query.
  Must be either `SystemResources.TOPICS.value()`, `SystemResources.SOURCES.value()` or `SystemResources.TYPES.value()`.
 
 **`List<String> props`**: (*Required*) Specifies the desired properties to be returned in each record.  An empty list or null value means all properties will be returned.
