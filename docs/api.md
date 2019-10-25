@@ -1263,7 +1263,7 @@ To reconnect to a severed persistent subscription.
                      "/test/topic", 
                      null, 
                      new AcknowledgingOutputCallback(),
-                     {persistent: true, subscriptionName: subscriptionName, requestId: requestsId});
+                     {persistent: true, subscriptionName: subscriptionName, requestId: requestId});
 
 
 
