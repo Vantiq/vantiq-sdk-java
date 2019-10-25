@@ -1255,7 +1255,7 @@ Create a subscription to the `MySource` reliable source that prints out when mes
     vantiq.subscribe(Vantiq.SystemResources.SOURCES.value(), 
                      "MySource", 
                      null, 
-                     new StandardOutputCallback(),
+                     new AcknowledgingOutputCallback(),
                       {persistent: true});
 
 To reconnect to a severed persistent subscription.
