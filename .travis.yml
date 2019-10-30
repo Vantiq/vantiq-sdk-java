@@ -7,7 +7,9 @@ jdk:
 # Handle gradle cache peculiarity (https://docs.travis-ci.com/user/languages/java#Projects-Using-Gradle)
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
-
+  
+script:
+  - gradle wrapper --gradle-version=5.5.1
 cache:
   directories:
     - $HOME/.gradle/caches/
@@ -19,5 +21,3 @@ branches:
   - master
 
 dist: trusty
-script:
-  - ./gradlew wrapper --gradle-version=5.6.3
