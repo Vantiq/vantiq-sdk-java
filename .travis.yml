@@ -2,7 +2,6 @@ language: java
 
 jdk:
     - openjdk8
-    - openjdk7
 
 # Handle gradle cache peculiarity (https://docs.travis-ci.com/user/languages/java#Projects-Using-Gradle)
 before_cache:
