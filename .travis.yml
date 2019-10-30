@@ -8,7 +8,7 @@ jdk:
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
   
-script:
+before_script:
   - ./gradlew --gradle-version=5.5.1
 cache:
   directories:
