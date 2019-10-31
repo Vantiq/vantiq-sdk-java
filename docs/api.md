@@ -151,7 +151,7 @@ Name | Type | Required | Description
 :--: | :--: | :------:| -----------
 username | String | Yes | The username to provide access to the Vantiq server
 password | String | Yes | The password to provide access to the Vantiq server
-handler | ResponseHandler | Yes | Listener that is called upon success or failure
+handler | ResponseHandler | Yes | A ResponseHandler that is called upon success or failure 
 
 ### Returns
 
@@ -199,7 +199,7 @@ VantiqResponse vantiq.select(String resource,
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-resource | String | Yes | The resource to query
+resource | String | Yes | The name of the resource type to query. Must be either `SystemResources.TOPICS.value()`, `SystemResources.SOURCES.value()` or `SystemResources.TYPES.value()`.
 props| List<String> | No | Specifies the desired properties to be returned in each record.  An empty list or null value means all properties will be returned.
 where | Object | No | Specifies constraints to filter the data.  Null means all records will be returned.  This object uses [Gson](https://github.com/google/gson) to convert to a JSON value for the REST API.
 sort | SortSpec | No | Specifies the desired sort for the result set
@@ -294,8 +294,8 @@ VantiqResponse vantiq.selectOne(String resouce, String id)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-resource | String | Yes | The resource to query
-id   | String | Yes | The id for the given record
+resource | String | Yes | The name of the resource type to query. Must be either `SystemResources.TOPICS.value()`, `SystemResources.SOURCES.value()` or `SystemResources.TYPES.value()`.`SystemResources.TYPES.value()`.
+id   | String | Yes | The unique identifier for the given record ("_id" for user defined Types)
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 ### Returns
@@ -347,7 +347,7 @@ VantiqResponse vantiq.count(String resource, Object where)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-resource | String | Yes | The resource to query
+resource | String | Yes | The name of the resource type to query. Must be either `SystemResources.TOPICS.value()`, `SystemResources.SOURCES.value()` or `SystemResources.TYPES.value()`.`SystemResources.TYPES.value()`.
 where | Object | No | Specifies constraints to filter the data.  Null means all records will be returned.
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
@@ -407,8 +407,8 @@ VantiqResponse vantiq.insert(String resource, Object object)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-resource | String | Yes | The resource to insert
-object | Object | Yes | The object to insert.  This is converted to JSON using Gson.
+resource | String | Yes | The name of the resource type to query. Must be either `SystemResources.TOPICS.value()`, `SystemResources.SOURCES.value()` or `SystemResources.TYPES.value()`.`SystemResources.TYPES.value()`.
+object | Object | Yes | The object to insert.  
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 ### Returns
@@ -452,9 +452,9 @@ VantiqResponse vantiq.update(String resource, String id, Object object)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-resource | String | Yes | The resource to update
-id   | String | Yes | The "_id" internal identifier for the record
-props | Object | Yes | The properties to update in the record.  This is converted to JSON using Gson.
+resource | String | Yes | The name of the resource type to query. Must be either `SystemResources.TOPICS.value()`, `SystemResources.SOURCES.value()` or `SystemResources.TYPES.value()`.
+id   | String | Yes | The unique identifer for the record ("_id" for user defined Types)
+props | Object | Yes | The properties to update in the record. 
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 ### Returns
@@ -499,8 +499,8 @@ VantiqResponse vantiq.upsert(String resource, Object object)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-resource | String | Yes | The resource to upsert
-object | Object | Yes | The object to upsert.  This is converted to JSON using Gson.
+resource | String | Yes | The name of the resource type to query. Must be either `SystemResources.TOPICS.value()`, `SystemResources.SOURCES.value()` or `SystemResources.TYPES.value()`, or `SystemResources.TYPES.value()`.
+object | Object | Yes | The object to upsert. 
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 ### Returns
@@ -543,8 +543,8 @@ VantiqResponse vantiq.delete(String resource, Object where)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-resource | String | Yes | The resource to remove
-where | Object | Yes | Specifies which records to remove.  This is converted to JSON using Gson.
+resource | String | Yes |The name of the resource type to query. Must be either `SystemResources.TOPICS.value()`, `SystemResources.SOURCES.value()` or `SystemResources.TYPES.value()`.
+where | Object | Yes | Specifies which records to remove. 
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 The `where` is an object with supported operations defined in [API operations](https://dev.vantiq.com/docs/system/api/index.html#where-parameter) that will be converted to JSON using [Gson](https://github.com/google/gson).
@@ -605,8 +605,9 @@ VantiqResponse vantiq.deleteOne(String resource, String id)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-resource | String | Yes | The resource to remove
-id   | String | Yes | The id for the given record
+resource | String | Yes | The name of the resource type to query.
+                           Must be either `SystemResources.TOPICS.value()`, `SystemResources.SOURCES.value()` or `SystemResources.TYPES.value()`.
+id   | String | Yes | The unique identifier for the record ("_id" for user defined Types)
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 ### Returns
@@ -667,9 +668,10 @@ VantiqResponse vantiq.publish(String resource, String id, Object payload)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-resource | String | Yes | The resource to publish.  Must be either 'topics' or 'sources'.
-id       | String | Yes | The id for the specific resource to use.  An example topic is '/test/topic'.  An example source is 'mqttChannel'.
-payload  | Object | Yes | For topics, the payload is the message to send.  For sources, this is the parameters for the source.  This object is converted to JSON using Gson.
+resource | String | Yes | The name of the resource type to query.
+                           Must be either `SystemResources.TOPICS.value()` or `SystemResources.SOURCES.value()`.
+id       | String | Yes | The name of the Topic or Source (ie: '/test/topic' or  'mqttChannel').
+payload  | Object | Yes | For Topics, the payload is the message to send.  For Sources, this is the parameters for the source.  
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 For sources, the parameters required are source specific and are the same as those required
@@ -739,8 +741,8 @@ VantiqResponse vantiq.execute(String procedure, Object params)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-procedure | String | Yes | The procedure to execute
-params | Object | No | An object that holds the parameters. This object is converted to JSON using Gson.
+procedure | String | Yes | The name of the procedure to execute
+params | Object | No | An object that holds the parameters. 
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 The parameters may be provided as an array where the arguments are given in order.
@@ -804,8 +806,8 @@ VantiqResponse vantiq.evaluate(String modelName, Object params)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-modelName | String | Yes | The analytics model to execute
-params | Object | No | An object that holds the parameters. This object is converted to JSON using Gson.
+modelName | String | Yes | The name of the analytics model to execute
+params | Object | No | An object that holds the parameters. 
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 The input data in the `params` field should be structured in the form defined by the 
@@ -853,8 +855,8 @@ VantiqResponse vantiq.query(String source, Object params)
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-source | String | Yes | The source to perform the query
-params | Object | No | An object that holds the parameters. This object is converted to JSON using Gson.
+source | String | Yes | The name of the Source to perform the query
+params | Object | No | An object that holds the parameters. 
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 The parameters required are source specific and are the same as those required
@@ -900,7 +902,7 @@ callback is executed whenever a matching event occurs.
 ### Signature
 
 ```java
-void vantiq.subscribe(String resource, String name, TypeOperation operation, SubscriptionCallback callback)
+void vantiq.subscribe(String resource, String name, TypeOperation operation, SubscriptionCallback callback, Map parameters)
 ```
 
 ### Parameters
@@ -911,6 +913,7 @@ resource | String | Yes | The resource event to subscribe.  Must be either Syste
 name     | String | Yes | The resource name that identifies the specific resource event.  For topics, this is the topic name (e.g. '/my/topic/').  For sources, this is the source name.  For types, this is the data type name.
 operation| TypeOperation | No  | This only applies for 'types' and specifies the operation to listen to (e.g. TypeOperation.INSERT, TypeOperation.UPDATE, TypeOperation.DELETE)
 callback | SubscriptionCallback | Yes | This callback is executed when the specified events occur.
+parameters | Map<String, String>| No | Map specifying extra details about the subscription to the server. (eg: {persistent:true} to create a persistent subscription, {persistent:true: subscriptionName: 'mySub', requestId: requestId} to reconnect to a broken persistent subscription)
 
 The `SubscriptionCallback` interface contains 4 methods:
 
@@ -927,7 +930,7 @@ Name | Type | Description
 :--: | :--: | -----------
 status | int | The status for the given message.  The possible values are the HTTP status codes.  Typically, this would be 100. 
 contentType | String | The content MIME type for the message body.  Typically, this is `application/json`.
-headers | Map<String,String> | Headers associated with the response.
+headers | Map | Headers associated with the response.
 body | Object | The payload for the event.  For JSON encoded responses, this is typically a Map.
 
 The structure of the body of the event is:
@@ -989,6 +992,9 @@ Create a subscription to the `MyDataType` type for that prints out when that typ
                      "MyDataType", 
                      Vantiq.TypeOperation.UPDATE, 
                      new StandardOutputCallback());
+
+See [acknowledge](#user-content-vantiq-acknowledge) section for how to create a persistent subscription
+and acknowledge reliable events
 
 ## <a id="vantiq-unsubscribeAll"></a> Vantiq.unsubscribeAll
 
@@ -1164,7 +1170,95 @@ while((int len = source.read(buf)) != -1) {
 os.close();
 ```
 
+## <a id="vantiq-acknowledge"></a> Vantiq.acknowledge
 
+The `acknowledge` method is used to acknowledge the receipt of messages from reliable resources after creating a persistent subscription.
+ The provided callback is executed whenever a matching event occurs.
+
+### Signature
+
+```java
+void vantiq.ack(String subscriptionName, String requestId, Map msg)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+subscriptionName | String | Yes | The name of the subscription that uniquely identifies the persistent subscription. This was returned by the server on creation of the persistent subscription. 
+requestId | String | Yes | The id of the requestId that that uniquely identifies the websocket requests made by this subscription. This was returned by the server on creation of the persistent subscription. 
+msg | Map | Yes | The message in the event being acknowledged. This is the body of the SubscriptionMessage
+
+### Returns
+
+N/A
+
+### Example
+
+Create a callback that acknowledges events as they arrive.
+```
+public class AcknowledgingOutputCallback implements SubscriptionCallback {
+   private String subscriptionName;
+   private String requestId;
+
+    @Override
+    public void onConnect() {
+        System.out.println("Connected Successfully");
+    }
+
+    @Override
+    public void onMessage(SubscriptionMessage message) {
+        //Server response with subscription information (not a topic event)
+        if (message.body.subscriptionName) {
+            this.subscriptionName = message.body.subscriptionName;
+            this.requestId = message.body.requestId;
+            System.out.println("SubscriptionName " + this.subscriptionName);
+            System.out.println("RequestId " + this.requestId);
+        } else {
+            //message.body is an event on the subscribed topic. Acknowledge that we received the event
+            vantiq.ack(this.subscriptionName, this.requestId, message.body);
+        }
+    }
+
+    @Override
+    public void onError(String error) {
+        System.out.println("Error: " + error);
+    }
+
+    @Override
+    public void onFailure(Throwable t) {
+        t.printStackTrace();
+    }
+}
+
+```
+Create a persistent subscription  to the `/test/topic` reliable topic that acknowledges when events are published to the topic.
+
+    vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), 
+                     "/test/topic", 
+                     null, 
+                     new AcknowledgingOutputCallback(),
+                     {persistent: true});
+                     
+  
+
+Create a subscription to the `MySource` reliable source that prints out when messages arrive at the source.
+
+    vantiq.subscribe(Vantiq.SystemResources.SOURCES.value(), 
+                     "MySource", 
+                     null, 
+                     new AcknowledgingOutputCallback(),
+                      {persistent: true});
+
+To reconnect to a severed persistent subscription.
+```
+vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), 
+                     "/test/topic", 
+                     null, 
+                     new AcknowledgingOutputCallback(),
+                     {persistent: true, subscriptionName: subscriptionName, requestId: requestId});
+
+```
 
 
 ## <a id="vantiq-accessToken"></a> Vantiq.accessToken [String]

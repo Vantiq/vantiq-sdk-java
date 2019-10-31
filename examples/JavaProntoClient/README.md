@@ -11,7 +11,7 @@ To properly build the project:
 
 ## Running the project
 First, follow the steps explained under [Dependencies](#dependencies). Once those steps are complete, simply run the following 
-command: ``./gradlew tomcatRun`` to start the project.
+command: ``../.././gradlew tomcatRun`` to start the project.
 
 **IMPORTANT NOTES:**
 * You will know the server is running when the following line appears in your command line: "The Server is running at
