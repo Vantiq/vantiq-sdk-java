@@ -915,7 +915,6 @@ operation| TypeOperation | No  | This only applies for 'types' and specifies the
 callback | SubscriptionCallback | Yes | This callback is executed when the specified events occur.
 parameters | Map<String, String>| No | Map specifying extra details about the subscription to the server. (eg: {persistent:true} to create a persistent subscription, {persistent:true: subscriptionName: 'mySub', requestId: requestId} to reconnect to a broken persistent subscription)
 
-
 The `SubscriptionCallback` interface contains 4 methods:
 
 Name | Argument | Description
