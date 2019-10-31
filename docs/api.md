@@ -913,9 +913,7 @@ resource | String | Yes | The resource event to subscribe.  Must be either Syste
 name     | String | Yes | The resource name that identifies the specific resource event.  For topics, this is the topic name (e.g. '/my/topic/').  For sources, this is the source name.  For types, this is the data type name.
 operation| TypeOperation | No  | This only applies for 'types' and specifies the operation to listen to (e.g. TypeOperation.INSERT, TypeOperation.UPDATE, TypeOperation.DELETE)
 callback | SubscriptionCallback | Yes | This callback is executed when the specified events occur.
-parameters | Map<String, String>| No | Map specifying extra details about the subscription to the server.
-                                         (eg: {persistent:true} to create a persistent subscription,
-                                          {persistent:true: subscriptionName: 'mySub', requestId: requestId} to reconnect to a broken persistent subscription)
+parameters | Map<String, String>| No | Map specifying extra details about the subscription to the server. (eg: {persistent:true} to create a persistent subscription, {persistent:true: subscriptionName: 'mySub', requestId: requestId} to reconnect to a broken persistent subscription)
 The `SubscriptionCallback` interface contains 4 methods:
 
 Name | Argument | Description
