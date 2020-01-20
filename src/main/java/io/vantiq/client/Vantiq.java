@@ -1344,6 +1344,7 @@ public class Vantiq {
      * @param id The id of the resource
      * @param operation Only for "types", the specific operation event to subscribe to.
      * @param callback The callback used when the event is received
+     * @param parameters  parameters    
      */
     public void subscribe(String resource,
                           String id,
@@ -1384,7 +1385,13 @@ public class Vantiq {
     
     /**
      * Acknowledge the receipt of a reliable message
-     * */
+     * 
+     * @param subscriptionId  subscription id  
+     * @param requestId  request id  
+     * @param msg Message
+     * @throws IOException If request fails        
+     * 
+     */
     public void ack(String subscriptionId, String requestId, Map msg) throws IOException {
         Double sequenceId = (double) msg.get("sequenceId") ;
         Double partitionId = (double) msg.get("partitionId");

@@ -182,7 +182,11 @@ public class VantiqResponse {
      * @return Boolean indicating if the call was successful.
      */
     public boolean isSuccess() {
-        return this.response.isSuccessful();
+        if (this.response != null)
+        {
+            return this.response.isSuccessful();
+        }
+        return false;
     }
 
     /**

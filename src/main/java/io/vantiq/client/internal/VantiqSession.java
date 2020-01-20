@@ -852,6 +852,7 @@ public class VantiqSession {
      * @param path The path that defines the event (e.g. /resource/id[/operation])
      * @param callback The callback that is executed for every event that occurs.
      * @param enablePings Indicates if pings should be enabled to ensure the websocket stays open
+     * @param parameters Parameters
      */
     public void subscribe(final String path,
                           final SubscriptionCallback callback,
@@ -890,7 +891,16 @@ public class VantiqSession {
     }
 
 
-    /**Acknowledge the receipt of a reliable message*/
+    /**
+     * Acknowledge the receipt of a reliable message
+     *
+     * @param requestId Request Id
+     * @param subscriptionId Subscription Id
+     * @param sequenceId Sequence Id
+     * @param partitionId Partition Id
+     * 
+     * @throws IOException If request fails    
+     */
     public void ack(String requestId, String subscriptionId, Double sequenceId, Double partitionId) throws IOException {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("subscriptionId", subscriptionId);
