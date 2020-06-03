@@ -148,7 +148,7 @@ public class VantiqSubscriber implements WebSocketListener {
 
     private static class ValidateAuthenticationRequest {
         public String op = "validate";
-        public String resourceName = "users";
+        public String resourceName = "system.credentials";
         public String object;
 
         public ValidateAuthenticationRequest(String accessToken) {
