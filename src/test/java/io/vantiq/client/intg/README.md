@@ -6,7 +6,7 @@ reside in the `project` folder.
 
 ## Vantiq Project Setup
 
-The following project must be loaded into an existing Vantiq server.  The
+The following project must be loaded into an existing Vantiq server For the integration tests.  The
 [Vantiq CLI](https://dev.vantiq.com/ui/ide/index.html#/resources) may be used
 to load the artifacts into the server:
 
@@ -25,4 +25,11 @@ in `~/.vantiq/profile`.
 
 ## Run Integration Tests
 
-Once the project has been loaded, the integration tests can be run from inside IntelliJ.
+Once the project has been loaded, the integration tests can be run from inside IntelliJ or through the Gradle task 
+`:intgTest`.
+
+The integration tests also need Java system properties set before they can run. The server url must be provided in 
+`server`, e.g. `https://dev.vantiq.com`. Authentication must be provided through either username and password or a
+token. The username and password can be placed in `username` and `password`, or the token can be provided through
+`token`. To set these properties for Gradle add `-D<variable>=<value>` for each property. For IntelliJ put the same in
+the VM options section of the Ron/Debug configurations.
