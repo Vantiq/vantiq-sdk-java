@@ -3,3 +3,4 @@ RULE onTestPublish
 WHEN PUBLISH OCCURS ON "/test/topic" AS event
 
 INSERT INTO TestType(event.newValue)
+Event.ack()
