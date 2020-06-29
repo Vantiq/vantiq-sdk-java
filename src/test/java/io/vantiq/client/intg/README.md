@@ -6,19 +6,18 @@ reside in the `project` folder.
 
 ## Vantiq Project Setup
 
-The following project must be loaded into an existing Vantiq server For the integration tests.  The
+The following project must be loaded into an existing Vantiq server for the integration tests.  The
 [Vantiq CLI](https://dev.vantiq.com/ui/ide/index.html#/resources) may be used
 to load the artifacts into the server:
 
-* `project/type/TestType.type`: A data type for testing
-* `project/rule/onTestPublish.rule`: A rule that persists an TestType record when an event is fired on `/test/topic`
-* `project/procedure/echo.proc`: A procedure that simply echos the input arguments
+* `project/types/TestType.json`: A data type for testing
+* `project/rules/onTestPublish.vail`: A rule that persists an TestType record when an event is fired on `/test/topic`
+* `project/procedures/echo.vail`: A procedure that simply echos the input arguments
+* `project/sources/JSONPlaceholder.json`: A REMOTE source
 
-The following CLI commands will load these into the Vantiq server:
+The following CLI command will load these into the Vantiq server:
 
-    % vantiq -s <profile> load type      project/type/TestType.type
-    % vantiq -s <profile> load ruleset   project/rule/onTestPublish.rule
-    % vantiq -s <profile> load procedure project/procedure/echo.proc
+    %  vantiq -s <profile> import -d src/test/resources/intgTest
 
 Note that `<profile>` specifies the proper server and credentials to use
 in `~/.vantiq/profile`.
@@ -33,3 +32,7 @@ The integration tests also need Java system properties set before they can run. 
 token. The username and password can be placed in `username` and `password`, or the token can be provided through
 `token`. To set these properties for Gradle add `-D<variable>=<value>` for each property. For IntelliJ put the same in
 the VM options section of the Ron/Debug configurations.
+
+For example:  
+
+    %  ./gradlew intgtest -Dserver=http://localhost:8080 -Dusername=aaaa -Dpassword=mypwd    
