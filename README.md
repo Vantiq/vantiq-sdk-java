@@ -21,7 +21,7 @@ In Gradle,
     }
     
     dependencies {
-        compile 'io.vantiq:vantiq-sdk:1.0.17'
+        compile 'io.vantiq:vantiq-sdk:1.0.28'
     }
 
 In Maven,
@@ -37,7 +37,7 @@ In Maven,
         <dependency>
             <groupId>io.vantiq</groupId>
             <artifactId>vantiq-sdk</artifactId>
-            <version>1.0.17</version>
+            <version>1.0.28</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>    
@@ -124,4 +124,4 @@ To execute the integration tests, the following Java properties must be set:
 
 ## Copyright and License
 
-Copyright &copy; 2016 Vantiq, Inc.  Code released under the [MIT license](./LICENSE).
+Copyright &copy; 2020 Vantiq, Inc.  Code released under the [MIT license](./LICENSE).
