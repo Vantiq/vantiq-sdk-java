@@ -11,8 +11,8 @@ The Vantiq object provides the main API for the Vantiq Java SDK.  This SDK follo
 ### Resources
 
 Each of the SDK API methods corresponds to a specific REST API operation on a specific resource.  For example,
-`select` performs a query against a given resource.  `select("types", ...)` queries against defined data types.
-`select("procedures", ...)` queries against defined procedures.
+`select` performs a query against a given resource.  `select("system.types", ...)` queries against defined data types.
+`select("system.procedures", ...)` queries against defined procedures.
 
 The available system resources are defined in the `Vantiq.SystemResources` enum and include the following:
 

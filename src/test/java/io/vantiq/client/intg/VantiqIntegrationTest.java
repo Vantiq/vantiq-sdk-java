@@ -51,9 +51,9 @@ public class VantiqIntegrationTest {
     @Before
     public void setUp() throws Exception {
         vantiq = new Vantiq(server);
-        if (!username.equals("") && !password.equals("")) {
+        if (username != null && !username.equals("") && password != null && !password.equals("")) {
             vantiq.authenticate(username, password);
-        } else if (!username.equals("")) {
+        } else if (token != null && !token.equals("")) {
             vantiq.setAccessToken(token);
         } else {
             throw new IllegalStateException("Must set 'server', 'username', and 'password', or 'token' Java System Properties");
