@@ -65,8 +65,6 @@ public class VantiqIntegrationTest {
 
     @After
     public void tearDown() throws Exception {
-        // Clear the topic to avoid interference between tests
-        vantiq.deleteOne("topics", "/test/topic");
         vantiq = null;
     }
 
