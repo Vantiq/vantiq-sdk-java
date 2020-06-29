@@ -1,8 +1,6 @@
 package io.vantiq.client.intg;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.internal.LinkedTreeMap;
 import io.vantiq.client.*;
 import okio.*;
@@ -53,9 +51,9 @@ public class VantiqIntegrationTest {
     @Before
     public void setUp() throws Exception {
         vantiq = new Vantiq(server);
-        if (!username.equals("") && !password.equals("")) {
+        if (username != null && !username.equals("") && password != null && !password.equals("")) {
             vantiq.authenticate(username, password);
-        } else if (!username.equals("")) {
+        } else if (token != null && !token.equals("")) {
             vantiq.setAccessToken(token);
         } else {
             throw new IllegalStateException("Must set 'server', 'username', and 'password', or 'token' Java System Properties");
@@ -397,7 +395,8 @@ public class VantiqIntegrationTest {
 
         // Synchronously publish to the topic
         Map body = new HashMap();
-        body.put("time", new Date());
+        body.put("ts", getISOString(new Date()));
+        body.put("id", "SUB-" + new Date().getTime());
         VantiqResponse r = vantiq.publish("topics", "/test/topic", body);
         assertThat("Valid publish", r.isSuccess(), is(true));
 
@@ -441,7 +440,8 @@ public class VantiqIntegrationTest {
 
         // Synchronously publish to the topic
         Map body = new HashMap();
-        body.put("time", new Date());
+        body.put("ts", getISOString(new Date()));
+        body.put("id", "SUBRE-" + new Date().getTime());
         VantiqResponse r = vantiq.publish("topics", "/test/topic", body);
         assertThat("Valid publish", r.isSuccess(), is(true));
 
@@ -493,7 +493,8 @@ public class VantiqIntegrationTest {
 
         // Synchronously publish to the topic
         Map body = new HashMap();
-        body.put("time", new Date());
+        body.put("ts", getISOString(new Date()));
+        body.put("id", "RECONN-" + new Date().getTime());
         VantiqResponse r = vantiq.publish("topics", "/test/topic", body);
         assertThat("Valid publish", r.isSuccess(), is(true));
 
@@ -559,7 +560,8 @@ public class VantiqIntegrationTest {
 
         // Synchronously publish to the topic
         Map body = new HashMap();
-        body.put("time", new Date());
+        body.put("ts", getISOString(new Date()));
+        body.put("id", "ACK-" + new Date().getTime());
         VantiqResponse r = vantiq.publish("topics", "/test/topic", body);
         assertThat("Valid publish", r.isSuccess(), is(true));
 
