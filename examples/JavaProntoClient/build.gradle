@@ -5,6 +5,7 @@ apply plugin: 'com.bmuschko.tomcat'
  
 repositories {
     jcenter()
+    mavenCentral()
 }
  
 dependencies {   
