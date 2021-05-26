@@ -4,12 +4,7 @@ apply plugin: 'war'
 apply plugin: 'com.bmuschko.tomcat'
  
 repositories {
-    jcenter()
-    
-    // Used for VANTIQ SDK
-    maven {
-        url "https://dl.bintray.com/vantiq/maven"
-    }
+    mavenCentral()
 }
  
 dependencies {   
@@ -26,8 +21,9 @@ dependencies {
            "org.apache.tomcat:tomcat-websocket:${tomcatVersion}"
     
     // Used for VANTIQ SDK
-    compile 'io.vantiq:vantiq-sdk:1.0.17'
-	
+    def vantiqSDKVersion = "1.0.28"
+    compile "io.vantiq:vantiq-sdk:${vantiqSDKVersion}"
+    
     // Used to setup Java WebSockets
     compile 'javax.websocket:javax.websocket-api:1.1'
 }
@@ -39,11 +35,6 @@ tomcat {
 }
 
 buildscript {
- 
-    repositories {
-        jcenter()
-    }
- 
     dependencies {
         classpath 'com.bmuschko:gradle-tomcat-plugin:2.5'
     }

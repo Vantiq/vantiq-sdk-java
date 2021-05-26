@@ -1,16 +1,18 @@
 buildscript {
     repositories {
-        jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+        mavenCentral()
     }
     dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1+'
         classpath 'com.github.jengelman.gradle.plugins:shadow:5.1.0'
     }
 }
 
 apply plugin: 'java'
 apply plugin: 'maven'
-apply plugin: 'com.jfrog.bintray'
+apply plugin: 'signing'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 //
@@ -27,7 +29,6 @@ allprojects {
 
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 dependencies {
@@ -82,34 +83,57 @@ artifacts {
 }
 
 //
-// jCenter publishing support
+// Sonatype publishing support
 //
-bintray {
+if (rootProject.hasProperty('ossrhUsername') && rootProject.hasProperty('ossrhPassword') &&
+        rootProject.hasProperty('signing.keyId') && rootProject.hasProperty('signing.password') &&
+        rootProject.hasProperty('signing.secretKeyRingFile')) {
 
-    user = System.getenv('BINTRAY_USER')
-    key  = System.getenv('BINTRAY_API_KEY')
+    signing {
+        sign configurations.archives
+    }
 
-    configurations = ['archives']
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-    publish = false
-    dryRun = false
+                repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
 
-    pkg {
-        userOrg = 'vantiq'
-        repo = 'maven'
-        name = archivesBaseName
-        desc = 'Vantiq SDK for Java and Android'
+                snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
 
-        websiteUrl      = 'https://github.com/Vantiq/vantiq-sdk-java'
-        issueTrackerUrl = 'https://github.com/Vantiq/vantiq-sdk-java/issues'
-        vcsUrl          = 'https://github.com/Vantiq/vantiq-sdk-java.git'
-        version {
-            vcsTag = version
+                pom.project {
+                    name 'Vantiq Java SDK'
+                    packaging 'jar'
+                    description 'Vantiq SDK for Java and Android'
+                    url 'https://vantiq.com/'
+
+                    scm {
+                        url 'https://github.com/Vantiq/vantiq-sdk-java'
+                        connection 'scm:git:git://github.com/Vantiq/vantiq-sdk-java.git'
+                        developerConnection 'scm:git:ssh://git@github.com/Vantiq/vantiq-sdk-java.git'
+                    }
+
+                    licenses {
+                        license {
+                            name 'MIT License'
+                            url 'https://github.com/Vantiq/vantiq-sdk-java/blob/master/LICENSE'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id 'vantiq'
+                            name 'Vantiq Development'
+                            email 'ossrh-admin@vantiq.com'
+                        }
+                    }
+                }
+            }
         }
-
-        licenses = ['MIT']
-
-        githubRepo = 'Vantiq/vantiq-sdk-java'
-        githubReleaseNotesFile = 'README.md'
     }
 }
