@@ -106,7 +106,7 @@ uploadArchives {
                 name 'Vantiq Java SDK'
                 packaging 'jar'
                 description 'Vantiq SDK for Java and Android'
-                url 'https://github.com/Vantiq/vantiq-sdk-java'
+                url 'https://vantiq.com/'
 
                 scm {
                     url 'https://github.com/Vantiq/vantiq-sdk-java'
