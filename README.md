@@ -1,7 +1,6 @@
 `<div style="height: 50px"><img style="float:right" alt="Vantiq Logo" src="http://vantiq.com/wp-content/uploads/2015/12/vantiq.png"/></div>
 
 [![Build Status](https://travis-ci.org/Vantiq/vantiq-sdk-java.svg?branch=master)](https://travis-ci.org/Vantiq/vantiq-sdk-java)
-[ ![Download](https://api.bintray.com/packages/vantiq/maven/vantiq-sdk/images/download.svg) ](https://bintray.com/vantiq/maven/vantiq-sdk/_latestVersion)
 
 # Vantiq SDK for Java
 
@@ -9,15 +8,13 @@ The [Vantiq](http://www.vantiq.com) Java SDK is a Java library that provides an 
 
 ## Installation
 
-The SDK is published through the Bintray Maven repository.  To include this into
+The SDK is published through the Maven Central repository.  To include this into
 your project, you can add the dependency.
 
 In Gradle,
 
     repositories {
-        maven {
-            url "https://dl.bintray.com/vantiq/maven"
-        }
+        mavenCentral()
     }
     
     dependencies {
@@ -25,13 +22,6 @@ In Gradle,
     }
 
 In Maven,
-
-    <repositories>
-        <repository>
-            <id>Vantiq Maven Repo</id>
-            <url>https://dl.bintray.com/vantiq/maven</url>
-        </repository>
-    </repositories>
     
     <dependencies>
         <dependency>
