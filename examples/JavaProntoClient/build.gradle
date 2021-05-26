@@ -4,7 +4,6 @@ apply plugin: 'war'
 apply plugin: 'com.bmuschko.tomcat'
  
 repositories {
-    jcenter()
     mavenCentral()
 }
  
@@ -36,11 +35,6 @@ tomcat {
 }
 
 buildscript {
- 
-    repositories {
-        jcenter()
-    }
- 
     dependencies {
         classpath 'com.bmuschko:gradle-tomcat-plugin:2.5'
     }
