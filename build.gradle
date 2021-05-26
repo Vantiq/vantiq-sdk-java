@@ -82,50 +82,55 @@ artifacts {
     archives javadocJar
 }
 
-signing {
-    sign configurations.archives
-}
-
 //
 // Sonatype publishing support
 //
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+if (rootProject.hasProperty('ossrhUsername') && rootProject.hasProperty('ossrhPassword') &&
+        rootProject.hasProperty('signing.keyId') && rootProject.hasProperty('signing.password') &&
+        rootProject.hasProperty('signing.secretKeyRingFile')) {
 
-            repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
+    signing {
+        sign configurations.archives
+    }
 
-            snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-            pom.project {
-                name 'Vantiq Java SDK'
-                packaging 'jar'
-                description 'Vantiq SDK for Java and Android'
-                url 'https://vantiq.com/'
-
-                scm {
-                    url 'https://github.com/Vantiq/vantiq-sdk-java'
-                    connection 'scm:git:git://github.com/Vantiq/vantiq-sdk-java.git'
-                    developerConnection 'scm:git:ssh://git@github.com/Vantiq/vantiq-sdk-java.git'
+                repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
                 }
 
-                licenses {
-                    license {
-                        name 'MIT License'
-                        url 'https://github.com/Vantiq/vantiq-sdk-java/blob/master/LICENSE'
+                snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                pom.project {
+                    name 'Vantiq Java SDK'
+                    packaging 'jar'
+                    description 'Vantiq SDK for Java and Android'
+                    url 'https://vantiq.com/'
+
+                    scm {
+                        url 'https://github.com/Vantiq/vantiq-sdk-java'
+                        connection 'scm:git:git://github.com/Vantiq/vantiq-sdk-java.git'
+                        developerConnection 'scm:git:ssh://git@github.com/Vantiq/vantiq-sdk-java.git'
                     }
-                }
 
-                developers {
-                    developer {
-                        id 'vantiq'
-                        name 'Vantiq Development'
-                        email 'ossrh-admin@vantiq.com'
+                    licenses {
+                        license {
+                            name 'MIT License'
+                            url 'https://github.com/Vantiq/vantiq-sdk-java/blob/master/LICENSE'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id 'vantiq'
+                            name 'Vantiq Development'
+                            email 'ossrh-admin@vantiq.com'
+                        }
                     }
                 }
             }
