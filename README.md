@@ -1,5 +1,3 @@
-`<div style="height: 50px"><img style="float:right" alt="Vantiq Logo" src="http://vantiq.com/wp-content/uploads/2015/12/vantiq.png"/></div>
-
 [![Build Status](https://travis-ci.org/Vantiq/vantiq-sdk-java.svg?branch=master)](https://travis-ci.org/Vantiq/vantiq-sdk-java)
 
 # Vantiq SDK for Java
@@ -18,7 +16,7 @@ In Gradle,
     }
     
     dependencies {
-        compile 'io.vantiq:vantiq-sdk:1.0.28'
+        compile 'io.vantiq:vantiq-sdk:1.0.29'
     }
 
 In Maven,
@@ -27,7 +25,7 @@ In Maven,
         <dependency>
             <groupId>io.vantiq</groupId>
             <artifactId>vantiq-sdk</artifactId>
-            <version>1.0.28</version>
+            <version>1.0.29</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>    

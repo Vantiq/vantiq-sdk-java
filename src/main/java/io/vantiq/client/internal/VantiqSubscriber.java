@@ -3,14 +3,11 @@ package io.vantiq.client.internal;
 import io.vantiq.client.SubscriptionCallback;
 import io.vantiq.client.SubscriptionMessage;
 import okhttp3.*;
-import okhttp3.ws.WebSocket;
-import okhttp3.ws.WebSocketCall;
-import okhttp3.ws.WebSocketListener;
 import okio.Buffer;
+import okio.ByteString;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -18,7 +15,7 @@ import java.util.concurrent.*;
 /**
  * Internal class that manages subscriptions to a Vantiq server.
  */
-public class VantiqSubscriber implements WebSocketListener {
+public class VantiqSubscriber extends WebSocketListener {
 
     private VantiqSession                              session = null;
     private OkHttpClient                                client = null;
@@ -56,7 +53,7 @@ public class VantiqSubscriber implements WebSocketListener {
                 + "/wsock/websocket";
         Request request = new Request.Builder().url(url).build();
 
-        WebSocketCall.create(client, request).enqueue(this);
+        webSocket = client.newWebSocket(request, this);
     }
 
     private static class VantiqSubscriptionRequest {
@@ -106,17 +103,13 @@ public class VantiqSubscriber implements WebSocketListener {
             this.subscribed.put(path, Boolean.FALSE);
         }
 
-        try {
-            VantiqSubscriptionRequest request =
-                    new VantiqSubscriptionRequest(path, this.session.getAccessToken(), parameters);
-            String body = VantiqSession.gson.toJson(request);
-            this.webSocket.sendMessage(RequestBody.create(WebSocket.TEXT, body));
-        } catch(IOException ex) {
-            callback.onFailure(ex);
-        }
+        VantiqSubscriptionRequest request =
+                new VantiqSubscriptionRequest(path, this.session.getAccessToken(), parameters);
+        String body = VantiqSession.gson.toJson(request);
+        this.webSocket.send(body);
     }
 
-    public void ack(String requestId, String subscriptionId, Double sequenceId, Double partitionId) throws IOException {
+    public void ack(String requestId, String subscriptionId, Double sequenceId, Double partitionId) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("subscriptionId", subscriptionId);
         params.put("sequenceId", sequenceId);
@@ -124,21 +117,17 @@ public class VantiqSubscriber implements WebSocketListener {
         VantiqAcknowledgementRequest request =
                 new VantiqAcknowledgementRequest(requestId, this.session.getAccessToken(), params);
         String body = VantiqSession.gson.toJson(request);
-        this.webSocket.sendMessage(RequestBody.create(WebSocket.TEXT, body));
+        this.webSocket.send(body);
     }
 
     public void close() {
-        if(this.scheduledExecutor != null) {
+        if (this.scheduledExecutor != null) {
             this.scheduledExecutor.shutdown();
             this.scheduledExecutor = null;
         }
-        if(this.webSocket != null) {
-            try {
-                this.webSocket.close(1000, null);
-                this.webSocket = null;
-            } catch(IOException ex) {
-                this.lifecycleHandler.onFailure(ex);
-            }
+        if (this.webSocket != null) {
+            this.webSocket.close(1000, null);
+            this.webSocket = null;
         }
     }
 
@@ -166,10 +155,10 @@ public class VantiqSubscriber implements WebSocketListener {
         public void run() {
             VantiqSubscriber subscriber = VantiqSubscriber.this;
             try {
-                if(subscriber.webSocket != null) {
+                if (subscriber.webSocket != null) {
                     Buffer payload = new Buffer();
                     payload.writeString("Vantiq-Ping", StandardCharsets.ISO_8859_1);
-                    subscriber.webSocket.sendPing(payload);
+                    subscriber.webSocket.send(payload.readByteString());
                 } else {
                     subscriber.pingerHandle.cancel(true);
                     subscriber.pingerHandle = null;
@@ -190,103 +179,85 @@ public class VantiqSubscriber implements WebSocketListener {
     @Override
     public void onOpen(WebSocket webSocket, Response response) {
         this.webSocket = webSocket;
-        try {
-            //
-            // Once the socket is open, we first need to validate the token
-            // to create an authenticated session
-            //
-            ValidateAuthenticationRequest request =
-                new ValidateAuthenticationRequest(this.session.getAccessToken());
-            String body = VantiqSession.gson.toJson(request);
-            this.webSocket.sendMessage(RequestBody.create(WebSocket.TEXT, body));
+        //
+        // Once the socket is open, we first need to validate the token
+        // to create an authenticated session
+        //
+        ValidateAuthenticationRequest request =
+            new ValidateAuthenticationRequest(this.session.getAccessToken());
+        String body = VantiqSession.gson.toJson(request);
+        this.webSocket.send(body);
+    }
 
-            //
-            // Once connected, we start pinging if requested.  Pinging will continue
-            // until the websocket is closed.
-            //
-            if(this.enablePings) {
-                startPeriodicPings();
-            }
-        } catch(IOException ex) {
-            this.lifecycleHandler.onFailure(ex);
+    @Override
+    public void onFailure(@NotNull WebSocket webSocket, @NotNull Throwable t, Response response) {
+        this.lifecycleHandler.onFailure(t);
+    }
+
+    @Override
+    public void onMessage(@NotNull WebSocket webSocket, ByteString bodyBytes) {
+        String bodyStr = bodyBytes.utf8();
+        SubscriptionMessage msg =
+            VantiqSession.gson.fromJson(bodyStr, SubscriptionMessage.class);
+
+        String requestId = null;
+        SubscriptionCallback callback = null;
+        boolean isSubscribed = false;
+        if (msg != null && msg.getHeaders() != null) {
+            requestId = msg.getHeaders().get("X-Request-Id");
+            callback = this.callbacks.get(requestId);
+            isSubscribed = this.subscribed.get(requestId);
         }
-    }
 
-    @Override
-    public void onFailure(IOException e, Response response) {
-        this.lifecycleHandler.onFailure(e);
-    }
+        if (this.wsauthenticated) {
 
-    @Override
-    public void onMessage(ResponseBody body) throws IOException {
-        try {
-            String bodyStr;
-            if(body.contentType() == WebSocket.TEXT) {
-                bodyStr = body.string();
-            } else {
-                bodyStr = body.source().readByteString().utf8();
-            }
-
-            SubscriptionMessage msg =
-                VantiqSession.gson.fromJson(bodyStr, SubscriptionMessage.class);
-
-            String requestId = null;
-            SubscriptionCallback callback = null;
-            boolean isSubscribed = false;
-            if(msg != null && msg.getHeaders() != null) {
-                requestId = msg.getHeaders().get("X-Request-Id");
-                callback = this.callbacks.get(requestId);
-                isSubscribed = this.subscribed.get(requestId);
-            }
-
-            if (this.wsauthenticated) {
-
-                // If the callback is null, this is the initial connection response
-                if(callback == null) {
-                    if(msg.getStatus() == 200) {
-                        // No op as this is expected
-                    } else {
-                        this.lifecycleHandler.onError("Error authenticating WebSocket request", body);
-                    }
-                } else {
-
-                    // If this is yet to be subscribed, then it's the subscription
-                    // response
-                    if(!isSubscribed) {
-                        if(msg.getStatus() == 200) {
-                            this.subscribed.put(requestId, Boolean.TRUE);
-                            callback.onConnect();
-                        } else if (msg.getStatus() == 100) {
-                            callback.onMessage(msg);
-                        } else {
-                            callback.onError("Error subscribing to '" + requestId + "'");
-                        }
-                    } else {
-                        callback.onMessage(msg);
-                    }
-
-                }
-
-            } else {
+            // If the callback is null, this is the initial connection response
+            if (callback == null) {
                 if (msg.getStatus() == 200) {
-                    this.wsauthenticated = true;
-                    this.lifecycleHandler.onConnect();
+                    //
+                    // Once connected, we start pinging if requested.  Pinging will continue
+                    // until the websocket is closed.
+                    //
+                    // (Moved from onOpen so that the pings don't interfere with the authentication- this was causing
+                    // tests to fail)
+                    //
+                    if (this.enablePings) {
+                        startPeriodicPings();
+                    }
                 } else {
-                    this.lifecycleHandler.onError("Error establishing authenticated WebSocket session", body);
+                    this.lifecycleHandler.onError("Error authenticating WebSocket request", null);
                 }
+            } else {
+
+                // If this is yet to be subscribed, then it's the subscription
+                // response
+                if(!isSubscribed) {
+                    if(msg.getStatus() == 200) {
+                        this.subscribed.put(requestId, Boolean.TRUE);
+                        callback.onConnect();
+                    } else if (msg.getStatus() == 100) {
+                        callback.onMessage(msg);
+                    } else {
+                        callback.onError("Error subscribing to '" + requestId + "'");
+                    }
+                } else {
+                    callback.onMessage(msg);
+                }
+
             }
-        } finally {
-            body.close();
+
+        } else {
+            if (msg.getStatus() == 200) {
+                this.wsauthenticated = true;
+                this.lifecycleHandler.onConnect();
+            } else {
+                this.lifecycleHandler.onError("Error establishing authenticated WebSocket session", null);
+            }
         }
     }
 
     @Override
-    public void onPong(Buffer payload) {
-        // No-op for Pong frame
-    }
-
-    @Override
-    public void onClose(int code, String reason) {
+    public void onClosed(@NotNull WebSocket webSocket, int code, @NotNull String reason) {
         this.lifecycleHandler.onClose();
     }
 }
