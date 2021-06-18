@@ -31,13 +31,17 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    compile 'com.squareup.okhttp3:okhttp:3.4.1'
-    compile 'com.squareup.okhttp3:okhttp-ws:3.4.1'
-    compile 'com.google.code.gson:gson:2.6.2'
-    compile 'com.google.guava:guava:19.0'
+ext {
+    okhttpVersion = '4.9.1'
+    guavaVersion = '30.1.1-jre'
+}
 
-    testCompile 'com.squareup.okhttp3:mockwebserver:3.4.1'
+dependencies {
+    compile "com.squareup.okhttp3:okhttp:${okhttpVersion}"
+    compile 'com.google.code.gson:gson:2.6.2'
+    compile "com.google.guava:guava:${guavaVersion}"
+
+    testCompile "com.squareup.okhttp3:mockwebserver:${okhttpVersion}"
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-library:1.3'
 }
