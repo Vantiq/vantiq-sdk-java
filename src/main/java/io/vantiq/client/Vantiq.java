@@ -465,7 +465,7 @@ public class Vantiq {
                                  List<String> propSpecs,
                                  Object where,
                                  SortSpec sortSpec) {
-        return this.select(resource,propSpecs,where,sortSpec,0L);
+        return this.select(resource,propSpecs,where,sortSpec,0L,null);
     }
 
     /**
@@ -488,6 +488,30 @@ public class Vantiq {
                                  Object where,
                                  SortSpec sortSpec,
                                  long limit) {
+        return this.select(resource,propSpecs,where,sortSpec,0L,null);
+    }
+    /**
+     * Returns the record for the given resource and specified id.  The response is a single JsonObject.
+     * Performs a query to search for records that match the given constraints synchronously.
+     * The response body will be a List of JsonObject objects.
+     *
+     * @param resource The resource to query.  This can be a {@link Vantiq.SystemResources SystemResources} value or
+     *                 a user-defined type name.
+     * @param propSpecs The optional list of properties to return in each record.  A null or empty list returns all properties.
+     * @param where The optional where constraint that filters the records returned.  The where is structured
+     *              following the structure outline in the
+     *              <a href="https://dev.vantiq.com/docs/system/api/index.html">API Documentation</a>.
+     * @param sortSpec The optional sort specification to order the returned records.
+     * @param limit A limit to the number of records returned (limit less then or equals to 0 means no limit)
+     * @param options The optional options
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse select(String resource,
+                                 List<String> propSpecs,
+                                 Object where,
+                                 SortSpec sortSpec,
+                                 long limit,
+                                 Object options) {
         String path = this.buildPath(resource,null);
 
         Map<String,String> queryParams = new HashMap<String,String>();
@@ -497,10 +521,14 @@ public class Vantiq {
         if(where != null) {
             queryParams.put("where", VantiqSession.gson.toJson(where));
         }
+        if(options != null) {
+            queryParams.put("options", VantiqSession.gson.toJson(options));
+        }
+
         if(sortSpec != null) {
             queryParams.put("sort", VantiqSession.gson.toJson(sortSpec.serialize()));
         }
-        
+
         if (limit > 0)
         {
             queryParams.put("limit", Long.toString(limit));
