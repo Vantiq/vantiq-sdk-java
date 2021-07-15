@@ -10,7 +10,9 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
@@ -67,6 +69,24 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
         assertThat("Valid body", ((List<JsonObject>) response.getBody()).get(0).get("a").getAsInt(), is(1));
     }
 
+    @Test
+    public void testSelectQueryWithOptions() throws Exception {
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(new JsonArrayBuilder()
+                        .add(new JsonObjectBuilder().addProperty("a", 1).addProperty("b", "bingo").obj())
+                        .add(new JsonObjectBuilder().addProperty("a", 2).addProperty("b", "jenga").obj())
+                        .json()));
+
+        Map<String,String> options = null;
+        options = new HashMap<String,String>();
+        options.put("AnyOption","true");
+
+        VantiqResponse response = vantiq.select("MyType", null, null, null, 0, options);
+        assertTrue("Successful response", response.isSuccess());
+    }
+    
     @Test
     public void testSelectQueryWithConstraints() throws Exception {
         server.enqueue(new MockResponse()
