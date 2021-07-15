@@ -529,7 +529,7 @@ public class Vantiq {
         if(sortSpec != null) {
             queryParams.put("sort", VantiqSession.gson.toJson(sortSpec.serialize()));
         }
-
+        
         if (limit > 0)
         {
             queryParams.put("limit", Long.toString(limit));
