@@ -21,7 +21,7 @@ dependencies {
            "org.apache.tomcat:tomcat-websocket:${tomcatVersion}"
     
     // Used for VANTIQ SDK
-    def vantiqSDKVersion = "1.0.29"
+    def vantiqSDKVersion = "1.0.30"
     compile "io.vantiq:vantiq-sdk:${vantiqSDKVersion}"
     
     // Used to setup Java WebSockets
