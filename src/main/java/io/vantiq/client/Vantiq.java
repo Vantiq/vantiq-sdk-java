@@ -488,7 +488,7 @@ public class Vantiq {
                                  Object where,
                                  SortSpec sortSpec,
                                  long limit) {
-        return this.select(resource,propSpecs,where,sortSpec,0L,null);
+        return this.select(resource,propSpecs,where,sortSpec,limit,null);
     }
     
     /**
