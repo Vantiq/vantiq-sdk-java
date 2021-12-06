@@ -438,8 +438,8 @@ public class VantiqIntegrationTest {
         if (!callback.isConnected()) {
             callback.reset();
             callback.waitForCompletion();
-            assertThat("Connected", callback.isConnected(), is(true));
         }
+        assertThat("Connected", callback.isConnected(), is(true));
         callback.reset();
 
         // Synchronously publish to the topic
@@ -497,8 +497,8 @@ public class VantiqIntegrationTest {
         if (!callback.isConnected()) {
             callback.reset();
             callback.waitForCompletion();
-            assertThat("Connected", callback.isConnected(), is(true));
         }
+        assertThat("Connected", callback.isConnected(), is(true));
         callback.reset();
 
         // Synchronously publish to the topic
@@ -570,8 +570,8 @@ public class VantiqIntegrationTest {
         if (!callback.isConnected()) {
             callback.reset();
             callback.waitForCompletion();
-            assertThat("Connected", callback.isConnected(), is(true));
         }
+        assertThat("Connected", callback.isConnected(), is(true));
         callback.reset();
 
         // Synchronously publish to the topic
