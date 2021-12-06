@@ -431,11 +431,15 @@ public class VantiqIntegrationTest {
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
         callback.waitForCompletion();
         LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
-        String ackId = msg.get("subscriptionName").toString();
-        String requestId = msg.get("requestId").toString();
-        callback.reset();
-        callback.waitForCompletion();
-        assertThat("Connected", callback.isConnected(), is(true));
+        assertThat(msg.get("subscriptionName"), instanceOf(String.class));
+        assertThat(callback.getMessage().getHeaders().get("X-Request-Id"), instanceOf(String.class));
+    
+        // Sometimes the connection occurs during the validations above. Check for completion only if it's not connected
+        if (!callback.isConnected()) {
+            callback.reset();
+            callback.waitForCompletion();
+            assertThat("Connected", callback.isConnected(), is(true));
+        }
         callback.reset();
 
         // Synchronously publish to the topic
@@ -484,11 +488,17 @@ public class VantiqIntegrationTest {
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
         callback.waitForCompletion();
         LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
+        assertThat(msg.get("subscriptionName"), instanceOf(String.class));
+        assertThat(callback.getMessage().getHeaders().get("X-Request-Id"), instanceOf(String.class));
         String ackId = msg.get("subscriptionName").toString();
-        String requestId = msg.get("requestId").toString();
-        callback.reset();
-        callback.waitForCompletion();
-        assertThat("Connected", callback.isConnected(), is(true));
+        String requestId = callback.getMessage().getHeaders().get("X-Request-Id");
+        
+        // Sometimes the connection occurs during the validations above. Check for completion only if it's not connected
+        if (!callback.isConnected()) {
+            callback.reset();
+            callback.waitForCompletion();
+            assertThat("Connected", callback.isConnected(), is(true));
+        }
         callback.reset();
 
         // Synchronously publish to the topic
@@ -551,11 +561,17 @@ public class VantiqIntegrationTest {
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
         callback.waitForCompletion();
         LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
+        assertThat(msg.get("subscriptionName"), instanceOf(String.class));
+        assertThat(callback.getMessage().getHeaders().get("X-Request-Id"), instanceOf(String.class));
         String ackId = msg.get("subscriptionName").toString();
-        String requestId = msg.get("requestId").toString();
-        callback.reset();
-        callback.waitForCompletion();
-        assertThat("Connected", callback.isConnected(), is(true));
+        String requestId = callback.getMessage().getHeaders().get("X-Request-Id");
+        
+        // Sometimes the connection occurs during the validations above. Check for completion only if it's not connected
+        if (!callback.isConnected()) {
+            callback.reset();
+            callback.waitForCompletion();
+            assertThat("Connected", callback.isConnected(), is(true));
+        }
         callback.reset();
 
         // Synchronously publish to the topic
