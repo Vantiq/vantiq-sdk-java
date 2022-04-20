@@ -365,7 +365,7 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
             vantiq.publish(Vantiq.SystemResources.TYPES.value(), "MyType", null);
             fail("Should only allow publish on sources and topics");
         } catch(IllegalArgumentException ex) {
-            assertThat(ex.getMessage(), is("Only 'sources' and 'topics' support publish"));
+            assertThat(ex.getMessage(), is("Only 'sources', 'services' and 'topics' support publish"));
         }
     }
 
