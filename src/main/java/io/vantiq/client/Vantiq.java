@@ -25,6 +25,7 @@ public class Vantiq {
         PROFILES("profiles"),
         RULES("rules"),
         SCALARS("scalars"),
+        SERVICES("services"),
         SOURCES("sources"),
         TOPICS("topics"),
         TYPES("types"),
@@ -1038,8 +1039,9 @@ public class Vantiq {
                         Object payload,
                         ResponseHandler responseHandler) {
         if(!SystemResources.SOURCES.value().equals(resource) &&
-           !SystemResources.TOPICS.value().equals(resource)) {
-            throw new IllegalArgumentException("Only 'sources' and 'topics' support publish");
+           !SystemResources.TOPICS.value().equals(resource) && 
+           !SystemResources.SERVICES.value().equals(resource)) {
+            throw new IllegalArgumentException("Only 'sources', 'services' and 'topics' support publish");
         }
 
         String path = "/resources/" + resource + "/" + id;
@@ -1071,8 +1073,9 @@ public class Vantiq {
                                   String id,
                                   Object payload) {
         if(!SystemResources.SOURCES.value().equals(resource) &&
-            !SystemResources.TOPICS.value().equals(resource)) {
-            throw new IllegalArgumentException("Only 'sources' and 'topics' support publish");
+            !SystemResources.TOPICS.value().equals(resource) &&
+            !SystemResources.SERVICES.value().equals(resource)) {
+            throw new IllegalArgumentException("Only 'sources', 'services' and 'topics' support publish");
         }
 
         String path = "/resources/" + resource + "/" + id;
