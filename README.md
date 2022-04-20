@@ -100,8 +100,8 @@ Example projects can be found under the [examples directory](./examples).
 The unit tests are mocked so they can be executed without a Vantiq server and account.  The integration tests require a Vantiq account with the artifacts under `src/resources/intgTest` loaded.  These can be loaded using the Vantiq CLI using the import command, e.g.,
 
 ```
-% cd src/resources/intgTest
-% vantiq -s <profile> import
+% cd src/test/resources/intgTest
+% vantiq -s <profile> import -d .
 ```
 
 To execute the integration tests, the following Java properties must be set:
