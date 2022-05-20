@@ -382,7 +382,38 @@ public class VantiqIntegrationTest {
         assertThat("Valid response", handler.getBodyAsJsonObject().get("arg1").getAsDouble(), is(3.14159));
         assertThat("Valid response", handler.getBodyAsJsonObject().get("arg2").getAsString(), is("xxx"));
     }
-    
+
+    @Test
+    public void testSubscribeServiceEvent() throws Exception {
+        UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
+
+        // Subscribe to topic
+        vantiq.subscribe(Vantiq.SystemResources.SERVICES.value(), "testService/testEvent", null, callback);
+        callback.waitForCompletion();
+        assertThat("Connected", callback.isConnected(), is(true));
+        callback.reset();
+
+        // Synchronously call procedure in the service to publish the event
+        JsonObject params = new JsonObject();
+        vantiq.execute("testService.publishToOutbound", params, handler);
+        waitForCompletion();
+
+        // Wait for the message
+        callback.waitForCompletion();
+        assertThat("Message received", callback.hasFired(), is(true));
+        assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"),
+                is("/services/testService/testEvent"));
+
+        Map respBody = (Map) callback.getMessage().getBody();
+        // Note: Path delivered here is the implementing event path.  The Request Id is the service event.
+        assertThat("Body Path", (String) respBody.get("path"),
+                is("/topics/testService/testEvent/publish"));
+        assertThat("Event contents type", (Map) respBody.get("value"), instanceOf(Map.class));
+        assertThat("Event contents value", (String) ((Map)respBody.get("value")).get("name"),
+                is("outbound event"));
+    }
+
+
     @Test
     public void testSubscribeTopic() throws Exception {
         UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();

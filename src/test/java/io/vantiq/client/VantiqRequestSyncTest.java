@@ -446,6 +446,21 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
     }
 
     @Test
+    public void testSubscribeServiceEvent() throws Exception {
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/json")
+                .setResponseCode(200)
+                .setBody(new JsonObjectBuilder()
+                        .json())
+        );
+
+        vantiq.subscribe(Vantiq.SystemResources.SERVICES.value(),
+                                                    "myService/myEvent",
+                                                        null,
+                                                        null);
+    }
+
+    @Test
     public void testUploadInvalidSession() throws Exception {
         server.enqueue(new MockResponse()
                            .setHeader("Content-Type", "application/json")

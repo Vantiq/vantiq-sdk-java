@@ -14,6 +14,9 @@ to load the artifacts into the server:
 * `project/rules/onTestPublish.vail`: A rule that persists an TestType record when an event is fired on `/test/topic`
 * `project/procedures/echo.vail`: A procedure that simply echos the input arguments
 * `project/sources/JSONPlaceholder.json`: A REMOTE source
+* `project/services/testService.json`: A service with an outbound event defined
+* `project/procedures/testService_publishToOutbound.vail`: A procedure within that service that publishes to the
+service's outbound event
 
 The following CLI command will load these into the Vantiq server:
 
