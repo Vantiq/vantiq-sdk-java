@@ -20,7 +20,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 //
 group            = 'io.vantiq'
 archivesBaseName = 'vantiq-sdk'
-version          = '1.0.32'
+version          = '1.0.33'
 
 allprojects {
     sourceCompatibility = 1.7
