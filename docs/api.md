@@ -1001,8 +1001,6 @@ Create a subscription to the `MyDataType` type for that prints out when that typ
                      Vantiq.TypeOperation.UPDATE, 
                      new StandardOutputCallback());
 
-
-
 See [acknowledge](#user-content-vantiq-acknowledge) section for how to create a persistent subscription
 and acknowledge reliable events
 
