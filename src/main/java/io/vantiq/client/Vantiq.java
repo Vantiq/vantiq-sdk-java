@@ -1371,7 +1371,8 @@ public class Vantiq {
      *
      * @param resource The resource whose events to subscribe.  This must be the
      *                 value of {@link Vantiq.SystemResources#TOPICS},
-     *                 {@link Vantiq.SystemResources#SOURCES}, or
+     *                 {@link Vantiq.SystemResources#SERVICES}, or
+     *                 {@link Vantiq.SystemResources#SOURCES}
      *                 {@link Vantiq.SystemResources#TYPES}.
      * @param id The id of the resource
      * @param operation Only for "types", the specific operation event to subscribe to.
@@ -1392,6 +1393,7 @@ public class Vantiq {
             path = "/" + resource + "/" + id;
         }
         if(SystemResources.SOURCES.value().equals(resource) ||
+                SystemResources.SERVICES.value().equals(resource) ||
                 SystemResources.TOPICS.value().equals(resource)) {
             if(operation != null) {
                 throw new IllegalArgumentException("Operation only support for 'types'");

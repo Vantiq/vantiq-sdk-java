@@ -909,8 +909,8 @@ void vantiq.subscribe(String resource, String name, TypeOperation operation, Sub
 
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
-resource | String | Yes | The resource event to subscribe.  Must be either SystemResources.TOPICS.value(), SystemResources.SOURCES.value() or SystemResources.TYPES.value().
-name     | String | Yes | The resource name that identifies the specific resource event.  For topics, this is the topic name (e.g. '/my/topic/').  For sources, this is the source name.  For types, this is the data type name.
+resource | String | Yes | The resource event to subscribe.  Must be either SystemResources.TOPICS.value(), SystemResources.SOURCES.value(), SystemResources.SERVICES.values(), or SystemResources.TYPES.value().
+name     | String | Yes | The resource name that identifies the specific resource event.  For topics, this is the topic name (e.g. '/my/topic/').  For sources, this is the source name.  For services, this must be the service and event name in the form '<serviceName>/<eventName>'. For types, this is the data type name.
 operation| TypeOperation | No  | This only applies for 'types' and specifies the operation to listen to (e.g. TypeOperation.INSERT, TypeOperation.UPDATE, TypeOperation.DELETE)
 callback | SubscriptionCallback | Yes | This callback is executed when the specified events occur.
 parameters | Map<String, String>| No | Map specifying extra details about the subscription to the server. (eg: {persistent:true} to create a persistent subscription, {persistent:true: subscriptionName: 'mySub', requestId: requestId} to reconnect to a broken persistent subscription)
@@ -986,12 +986,22 @@ Create a subscription to the `MySource` source that prints out when messages arr
                      null, 
                      new StandardOutputCallback());
 
+Create a subscription to the `MyService` service's `MyEvent` service event that prints out when messages arrive at the source.
+
+    vantiq.subscribe(Vantiq.SystemResources.SERVICES.value(), 
+                     "MyService/MyEvent", 
+                     null, 
+                     new StandardOutputCallback());
+
+
 Create a subscription to the `MyDataType` type for that prints out when that type has been updated.
 
     vantiq.subscribe(Vantiq.SystemResources.TYPES.value(), 
                      "MyDataType", 
                      Vantiq.TypeOperation.UPDATE, 
                      new StandardOutputCallback());
+
+
 
 See [acknowledge](#user-content-vantiq-acknowledge) section for how to create a persistent subscription
 and acknowledge reliable events
