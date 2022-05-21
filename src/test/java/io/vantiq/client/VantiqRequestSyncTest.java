@@ -341,6 +341,25 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
     }
 
     @Test
+    public void testPublishService() throws Exception {
+        server.enqueue(new MockResponse()
+                .setResponseCode(200));
+
+        JsonObject msg = new JsonObjectBuilder().addProperty("a", 1).obj();
+
+        VantiqResponse response = vantiq.publish(Vantiq.SystemResources.SERVICES.value(), "foo", msg);
+
+        // We first check the request
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/services/foo"));
+
+        // Check response
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Result", ((Boolean) response.getBody()), is(true));
+    }
+
+    @Test
     public void testPublishSource() throws Exception {
         server.enqueue(new MockResponse()
                                .setResponseCode(200));

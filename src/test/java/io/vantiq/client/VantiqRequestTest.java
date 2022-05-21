@@ -336,6 +336,26 @@ public class VantiqRequestTest extends VantiqTestBase {
     }
 
     @Test
+    public void testPublishService() throws Exception {
+        server.enqueue(new MockResponse()
+                .setResponseCode(200));
+
+        JsonObject msg = new JsonObjectBuilder().addProperty("a", 1).obj();
+
+        vantiq.publish(Vantiq.SystemResources.SERVICES.value(), "foo", msg, handler);
+        waitForCompletion();
+
+        // We first check the request
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/services/foo"));
+
+        // Check response
+        assertTrue("Successful response", handler.success);
+        assertThat("Result", handler.getBodyAsBoolean(), is(true));
+    }
+
+    @Test
     public void testPublishSource() throws Exception {
         server.enqueue(new MockResponse()
                                .setResponseCode(200));
