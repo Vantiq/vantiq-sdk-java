@@ -350,14 +350,18 @@ public class VantiqIntegrationTest {
         embedded.addProperty("b", 2);
         message.add("o", embedded);
 
-        // Publish to topic
+        // Publish to service event.
+        // Note: The service event is defined to have an implementing path which is the same as our
+        // publish topic (see resources/intgTest/services/testService.json).  Thus, if this publish works,
+        // an event will actually be published to the (same) test topic, and the rule defined for that
+        // (onTestPublish.vail) will fire.  Thus, this test has pretty much the same content as testPublishTopic()
+        // below -- just the mechanism by which the "publish" action happens is different.
         vantiq.publish(Vantiq.SystemResources.SERVICES.value(), "testService/inboundTestEvent", message, handler);
         waitForCompletion();
         assertTrue("Publish to Svc Event succeeded", handler.success);
 
         // Rule should insert the record into TestType
-        // so select it to find the record.  However, this may take a little bit of time
-        // so, adding slight delay.
+        // so select it to find the record.  However, this may take time so, adding slight delay.
         Thread.sleep(500);
 
         // Select all records and ensure that it was in the list
@@ -393,8 +397,7 @@ public class VantiqIntegrationTest {
         assertTrue("Publish succeeded", handler.success);
 
         // Rule should insert the record into TestType
-        // so select it to find the record.  However, this may take a little bit of time
-        // so, adding slight delay.
+        // so select it to find the record.  However, this may take time so, adding slight delay.
         Thread.sleep(500);
 
         // Select all records and ensure that it was in the list
