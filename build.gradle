@@ -20,7 +20,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 //
 group            = 'io.vantiq'
 archivesBaseName = 'vantiq-sdk'
-version          = '1.1.0'  // Added ability to publish svc events -- upward compat but API change.
+version          = '1.1.1' 
 
 allprojects {
     sourceCompatibility = 1.7
@@ -32,13 +32,14 @@ repositories {
 }
 
 ext {
-    okhttpVersion = '4.9.1'
-    guavaVersion = '30.1.1-jre'
+    okhttpVersion = '4.9.3'
+    guavaVersion = '31.1-jre'
+    gsonVersion = '2.8.9'
 }
 
 dependencies {
     compile "com.squareup.okhttp3:okhttp:${okhttpVersion}"
-    compile 'com.google.code.gson:gson:2.6.2'
+    compile "com.google.code.gson:gson:${gsonVersion}"
     compile "com.google.guava:guava:${guavaVersion}"
 
     testCompile "com.squareup.okhttp3:mockwebserver:${okhttpVersion}"
