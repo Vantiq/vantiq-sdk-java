@@ -335,6 +335,47 @@ public class VantiqIntegrationTest {
     }
 
     @Test
+    public void testPublishServiceEvent() throws Exception {
+        Date now = new Date();
+
+        String id = "PB-" + now.getTime();
+        JsonObject message = new JsonObject();
+        message.addProperty("id", id);
+        message.addProperty("ts", getISOString(now));
+        message.addProperty("x", 3.14159);
+        message.addProperty("k", 42);
+
+        JsonObject embedded = new JsonObject();
+        embedded.addProperty("a", 1);
+        embedded.addProperty("b", 2);
+        message.add("o", embedded);
+
+        // Publish to service event.
+        // Note: The service event is defined to have an implementing path which is the same as our
+        // publish topic (see resources/intgTest/services/testService.json).  Thus, if this publish works,
+        // an event will actually be published to the (same) test topic, and the rule defined for that
+        // (onTestPublish.vail) will fire.  Thus, this test has pretty much the same content as testPublishTopic()
+        // below -- just the mechanism by which the "publish" action happens is different.
+        vantiq.publish(Vantiq.SystemResources.SERVICES.value(), "testService/inboundTestEvent", message, handler);
+        waitForCompletion();
+        assertTrue("Publish to Svc Event succeeded", handler.success);
+
+        // Rule should insert the record into TestType
+        // so select it to find the record.  However, this may take time so, adding slight delay.
+        Thread.sleep(500);
+
+        // Select all records and ensure that it was in the list
+        JsonObject where = new JsonObject();
+        where.addProperty("id", id);
+
+        vantiq.select("TestType", null, where, null, handler.reset());
+        waitForCompletion();
+
+        assertThat("Found result", handler.getBodyAsList().size(), is(1));
+        assertThat("Correct value", handler.getBodyAsList().get(0).get("k").getAsInt(), is(42));
+    }
+
+    @Test
     public void testPublishTopic() throws Exception {
         Date now = new Date();
 
@@ -353,11 +394,10 @@ public class VantiqIntegrationTest {
         // Publish to topic
         vantiq.publish("topics", "/test/topic", message, handler);
         waitForCompletion();
-        assertTrue("Insert succeeded", handler.success);
+        assertTrue("Publish succeeded", handler.success);
 
         // Rule should insert the record into TestType
-        // so select it to find the record.  However, this may take a little bit of time
-        // so, adding slight delay.
+        // so select it to find the record.  However, this may take time so, adding slight delay.
         Thread.sleep(500);
 
         // Select all records and ensure that it was in the list
@@ -382,7 +422,38 @@ public class VantiqIntegrationTest {
         assertThat("Valid response", handler.getBodyAsJsonObject().get("arg1").getAsDouble(), is(3.14159));
         assertThat("Valid response", handler.getBodyAsJsonObject().get("arg2").getAsString(), is("xxx"));
     }
-    
+
+    @Test
+    public void testSubscribeServiceEvent() throws Exception {
+        UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();
+
+        // Subscribe to topic
+        vantiq.subscribe(Vantiq.SystemResources.SERVICES.value(), "testService/testEvent", null, callback);
+        callback.waitForCompletion();
+        assertThat("Connected", callback.isConnected(), is(true));
+        callback.reset();
+
+        // Synchronously call procedure in the service to publish the event
+        JsonObject params = new JsonObject();
+        vantiq.execute("testService.publishToOutbound", params, handler);
+        waitForCompletion();
+
+        // Wait for the message
+        callback.waitForCompletion();
+        assertThat("Message received", callback.hasFired(), is(true));
+        assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"),
+                is("/services/testService/testEvent"));
+
+        Map respBody = (Map) callback.getMessage().getBody();
+        // Note: Path delivered here is the implementing event path.  The Request Id is the service event.
+        assertThat("Body Path", (String) respBody.get("path"),
+                is("/topics/testService/testEvent/publish"));
+        assertThat("Event contents type", (Map) respBody.get("value"), instanceOf(Map.class));
+        assertThat("Event contents value", (String) ((Map)respBody.get("value")).get("name"),
+                is("outbound event"));
+    }
+
+
     @Test
     public void testSubscribeTopic() throws Exception {
         UnitTestSubscriptionCallback callback = new UnitTestSubscriptionCallback();

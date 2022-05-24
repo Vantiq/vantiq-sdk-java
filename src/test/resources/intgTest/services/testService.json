@@ -1,0 +1,16 @@
+{
+  "active" : true,
+  "ars_relationships" : [ ],
+  "eventTypes" : {
+    "inboundTestEvent": {
+      "direction": "INBOUND",
+      "implementingEventPath": "/topics//test/topic"
+    },
+    "testEvent" : {
+      "direction" : "OUTBOUND",
+      "implementingEventPath" : "/topics//testService/testEvent"
+    }
+  },
+  "name" : "testService",
+  "replicationFactor" : 1
+}

@@ -1,0 +1,3 @@
+PROCEDURE testService.publishToOutbound()
+PUBLISH {name: "outbound event", val: {breed: "English Springer"}} TO SERVICE EVENT "testService/testEvent"
+            

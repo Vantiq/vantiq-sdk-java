@@ -20,7 +20,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 //
 group            = 'io.vantiq'
 archivesBaseName = 'vantiq-sdk'
-version          = '1.0.32'
+version          = '1.1.0'  // Added ability to publish svc events -- upward compat but API change.
 
 allprojects {
     sourceCompatibility = 1.7
