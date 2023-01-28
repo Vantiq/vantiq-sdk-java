@@ -1,0 +1,6 @@
+RULE servicePublish
+
+WHEN EVENT OCCURS ON "/services/testService/inboundTestEvent" AS event
+
+INSERT INTO TestType(event.value)
+Event.ack()
