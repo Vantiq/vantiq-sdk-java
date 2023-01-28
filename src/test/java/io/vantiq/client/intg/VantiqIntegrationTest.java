@@ -447,7 +447,7 @@ public class VantiqIntegrationTest {
         Map respBody = (Map) callback.getMessage().getBody();
         // Note: Path delivered here is the implementing event path.  The Request Id is the service event.
         assertThat("Body Path", (String) respBody.get("path"),
-                is("/topics/testService/testEvent/publish"));
+                is("/topics/services/testService/testEvent/publish"));
         assertThat("Event contents type", (Map) respBody.get("value"), instanceOf(Map.class));
         assertThat("Event contents value", (String) ((Map)respBody.get("value")).get("name"),
                 is("outbound event"));

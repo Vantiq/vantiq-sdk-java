@@ -4,7 +4,7 @@
   "eventTypes" : {
     "inboundTestEvent": {
       "direction": "INBOUND",
-      "implementingEventPath": "/topics//test/topic"
+      "implementingResource": "/rules/servicePublish"
     },
     "testEvent" : {
       "direction" : "OUTBOUND",
