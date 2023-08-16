@@ -48,8 +48,14 @@ public class VantiqSubscriber extends WebSocketListener {
         }
 
         String url =
-            this.session.getServer().replace("http", "ws")
-                + "/api/v" + this.session.getApiVersion()
+            this.session.getServer().replace("http", "ws");
+        // Need to normalize trailing slash in server URI.
+        if (!(url.endsWith("/"))) {
+            url = url + "/";
+        }
+        
+        url = url
+                + "api/v" + this.session.getApiVersion()
                 + "/wsock/websocket";
         Request request = new Request.Builder().url(url).build();
 
