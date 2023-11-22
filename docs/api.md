@@ -109,15 +109,16 @@ This class exposes the [Vantiq REST API](https://dev.vantiq.com/docs/system/api/
 ### Signature
 
 ```java
-Vantiq vantiq = new Vantiq(String server[, int apiVersion])
+Vantiq vantiq = new Vantiq(String server[, int apiVersion, [Authenticator proxyAuthentcator]])
 ```
 
 ### Option Parameters
 
-Name | Type | Required | Description
-:--: | :--: | :------:| -----------
-server | String | Yes | The Vantiq server URL to connect to, e.g. `https://dev.vantiq.com`
-apiVersion | int | No | The version of the API to use.  Defaults to the latest.
+| Name               | Type                  | Required | Description                                                                                                                                                                                                                                                                                                                          |
+|--------------------|-----------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| server             | String                | Yes      | The Vantiq server URL to connect to, e.g. `https://dev.vantiq.com`                                                                                                                                                                                                                                                                   |
+| apiVersion         | int                   | No       | The version of the API to use.  Defaults to the latest.                                                                                                                                                                                                                                                                              |
+| proxyAuthenticator | okhttp3.Authenticator | No       | An Authenticator to use when an http proxy requires authentication. This is required only when BASIC user/password authentication is insufficient. The SDK will provide a built-in authenticator using the _scheme_`.proxyUser` and _scheme_`.proxyPassword` (where _scheme_ is the scheme from the server URL (`http` or `https`)). |
 
 ### Returns
 
