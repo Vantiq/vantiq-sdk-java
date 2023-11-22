@@ -58,6 +58,16 @@ task intgTest(type:Test) {
     systemProperties['username'] = System.getProperty('username')
     systemProperties['password'] = System.getProperty('password')
     systemProperties['token'] = System.getProperty('token')
+    def useProxy = System.getProperty("proxyHost")
+    if (useProxy) {
+        def scheme = new URI(System.getProperty('server')).getScheme()
+        systemProperties["${scheme}.proxyHost"] = System.getProperty('proxyHost')
+        systemProperties["${scheme}.proxyPort"] = System.getProperty('proxyPort')
+        systemProperties["${scheme}.proxyUser"] = System.getProperty('proxyUser')
+        systemProperties["${scheme}.proxyPassword"] = System.getProperty('proxyPassword')
+        systemProperties["${scheme}.nonProxyHosts"] = ""
+    }
+
     useJUnit {
         includeCategories 'io.vantiq.client.intg.IntegrationTests'
     }
