@@ -8,6 +8,7 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -32,6 +33,7 @@ public class VantiqIntegrationTest {
     private static String username = null;
     private static String password = null;
     private static String token = null;
+    private static boolean usingProxy = false;
     
     @BeforeClass
     public static void setUpIntgTest() throws Exception {
@@ -46,6 +48,8 @@ public class VantiqIntegrationTest {
         if(server == null || (missingUserPass && missingToken)) {
             throw new IllegalStateException("Must set 'server', 'username', and 'password', or 'token' Java System Properties");
         }
+        String scheme = new URI(server).getScheme();
+        usingProxy = System.getProperty(scheme + ".proxyHost") != null;
     }
 
     @Before
@@ -500,7 +504,19 @@ public class VantiqIntegrationTest {
 
         // Subscribe to topic
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
-        callback.waitForCompletion();
+        // These types of subscriptions may be a multi-step process where by > 1 message is required to complete the
+        // connection.  callback.waitForCompletion() just waits until some message arrives, not necessarily the
+        // connection message.  callback.waitForConnection() will loop (up to the specified (or default) timeout
+        // period until it sees that the connection status is satisfied.  If not (that is, timeout occurs), then it
+        // will return and the assertThat will detect the error state.
+        //
+        // Note that this is more prevalent (but not exclusive) when the path to the server is more "complicated."
+        // E.g. when a proxy is involved, when running on a loaded laptop, etc.  So relatively rare, but this
+        // improves the test diagnostics.  Previously, we'd just get a NPE on the callback.getMessage() if sufficient
+        // time had not gone by.
+        callback.waitForConnection();
+        assertThat("Connected", callback.isConnected(), is(true));
+        //noinspection rawtypes
         LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
         assertThat(msg.get("subscriptionName"), instanceOf(String.class));
         assertThat(callback.getMessage().getHeaders().get("X-Request-Id"), instanceOf(String.class));
@@ -557,7 +573,19 @@ public class VantiqIntegrationTest {
 
         // Subscribe to topic
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
-        callback.waitForCompletion();
+        // These types of subscriptions may be a multi-step process where by > 1 message is required to complete the
+        // connection.  callback.waitForCompletion() just waits until some message arrives, not necessarily the
+        // connection message.  callback.waitForConnection() will loop (up to the specified (or default) timeout
+        // period until it sees that the connection status is satisfied.  If not (that is, timeout occurs), then it
+        // will return and the assertThat will detect the error state.
+        //
+        // Note that this is more prevalent (but not exclusive) when the path to the server is more "complicated."
+        // E.g. when a proxy is involved, when running on a loaded laptop, etc.  So relatively rare, but this
+        // improves the test diagnostics.  Previously, we'd just get a NPE on the callback.getMessage() if sufficient
+        // time had not gone by.
+        callback.waitForConnection();
+        assertThat("Connected", callback.isConnected(), is(true));
+        //noinspection rawtypes
         LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
         assertThat(msg.get("subscriptionName"), instanceOf(String.class));
         assertThat(callback.getMessage().getHeaders().get("X-Request-Id"), instanceOf(String.class));
@@ -573,8 +601,11 @@ public class VantiqIntegrationTest {
         callback.reset();
 
         // Synchronously publish to the topic
+        //noinspection rawtypes
         Map body = new HashMap();
+        //noinspection unchecked
         body.put("ts", getISOString(new Date()));
+        //noinspection unchecked
         body.put("id", "RECONN-" + new Date().getTime());
         VantiqResponse r = vantiq.publish("topics", "/test/topic", body);
         assertThat("Valid publish", r.isSuccess(), is(true));
@@ -584,6 +615,7 @@ public class VantiqIntegrationTest {
         assertThat("Message received", callback.hasFired(), is(true));
         assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/topics/test/topic"));
 
+        //noinspection rawtypes
         Map respBody = (Map) callback.getMessage().getBody();
         assertThat("Body Path", (String) respBody.get("path"), is("/topics/test/topic/publish"));
 
@@ -592,6 +624,7 @@ public class VantiqIntegrationTest {
         assertThat("Message received", callback.hasFired(), is(true));
         assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/topics/test/topic"));
 
+        //noinspection rawtypes
         respBody = (Map) callback.getMessage().getBody();
         assertThat("Body Path", (String) respBody.get("path"), is("/topics/test/topic/publish"));
         
@@ -630,7 +663,19 @@ public class VantiqIntegrationTest {
 
         // Subscribe to topic
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback, params);
-        callback.waitForCompletion();
+        // These types of subscriptions may be a multi-step process where by > 1 message is required to complete the
+        // connection.  callback.waitForCompletion() just waits until some message arrives, not necessarily the
+        // connection message.  callback.waitForConnection() will loop (up to the specified (or default) timeout
+        // period until it sees that the connection status is satisfied.  If not (that is, timeout occurs), then it
+        // will return and the assertThat will detect the error state.
+        //
+        // Note that this is more prevalent (but not exclusive) when the path to the server is more "complicated."
+        // E.g. when a proxy is involved, when running on a loaded laptop, etc.  So relatively rare, but this
+        // improves the test diagnostics.  Previously, we'd just get a NPE on the callback.getMessage() if sufficient
+        // time had not gone by.
+        callback.waitForConnection();
+        assertThat("Connected", callback.isConnected(), is(true));
+        //noinspection rawtypes
         LinkedTreeMap msg = (LinkedTreeMap) callback.getMessage().getBody();
         assertThat(msg.get("subscriptionName"), instanceOf(String.class));
         assertThat(callback.getMessage().getHeaders().get("X-Request-Id"), instanceOf(String.class));
@@ -646,8 +691,11 @@ public class VantiqIntegrationTest {
         callback.reset();
 
         // Synchronously publish to the topic
+        //noinspection rawtypes
         Map body = new HashMap();
+        //noinspection unchecked
         body.put("ts", getISOString(new Date()));
+        //noinspection unchecked
         body.put("id", "ACK-" + new Date().getTime());
         VantiqResponse r = vantiq.publish("topics", "/test/topic", body);
         assertThat("Valid publish", r.isSuccess(), is(true));
@@ -657,6 +705,7 @@ public class VantiqIntegrationTest {
         assertThat("Message received", callback.hasFired(), is(true));
         assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/topics/test/topic"));
 
+        //noinspection rawtypes
         Map respBody = (Map) callback.getMessage().getBody();
         assertThat("Body Path", (String) respBody.get("path"), is("/topics/test/topic/publish"));
 
@@ -685,6 +734,7 @@ public class VantiqIntegrationTest {
         assertThat("Message received", callback.hasFired(), is(true));
         assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/sources/JSONPlaceholder"));
 
+        //noinspection rawtypes
         Map respBody = (Map) callback.getMessage().getBody();
         assertThat("Body Path", (String) respBody.get("path"), is("/sources/JSONPlaceholder/receive"));
     }
@@ -718,7 +768,8 @@ public class VantiqIntegrationTest {
         callback.waitForCompletion(5000);
         assertThat("Message received", callback.hasFired(), is(true));
         assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"), is("/types/TestType/insert"));
-
+    
+        //noinspection rawtypes
         Map respBody = (Map) callback.getMessage().getBody();
         assertThat("Body Path", (String) respBody.get("path"), startsWith("/types/TestType/insert"));
     }
