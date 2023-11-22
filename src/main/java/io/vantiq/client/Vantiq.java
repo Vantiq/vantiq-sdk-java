@@ -94,7 +94,7 @@ public class Vantiq {
     /**
      * Constructs a Vantiq SDK instance against a specific Vantiq server
      * URL using a specific REST API version.
-     * </p>
+     * <p>
      * The proxyAuthenticator is only required when the proxy requires authentication other than Basic user and
      * password. The internal authenticator will provide those as required, based on the Java standard properties.
      *
@@ -119,7 +119,7 @@ public class Vantiq {
     /**
      * Constructs a Vantiq SDK instance against a specific Vantiq server
      * using the latest version of the API.
-     * </p>
+     * <p>
      * The proxyAuthenticator is only required when the proxy requires authentication other than Basic user and
      * password. The internal authenticator will provide those as required, based on the Java standard properties.
      *
