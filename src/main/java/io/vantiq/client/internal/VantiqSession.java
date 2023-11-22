@@ -96,7 +96,10 @@ public class VantiqSession {
         // If a proxy authenticator has been provided, set up our client to use it.
         if (needProxyAuth) {
             builder.proxySelector(ProxySelector.getDefault());
-            builder.proxyAuthenticator(this.proxyAuthenticator);
+            // if a proxy authenticator has been provided, use it.  Otherwise, assume things will work out.
+            if (this.proxyAuthenticator != null) {
+                builder.proxyAuthenticator(this.proxyAuthenticator);
+            }
         }
         this.client = builder.build();
     }

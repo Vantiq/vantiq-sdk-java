@@ -3,7 +3,14 @@ package io.vantiq.client.intg;
 import com.google.gson.JsonObject;
 import com.google.gson.internal.LinkedTreeMap;
 import io.vantiq.client.*;
+import okhttp3.Authenticator;
+import okhttp3.Credentials;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.Route;
 import okio.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 
@@ -54,7 +61,15 @@ public class VantiqIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        vantiq = new Vantiq(server);
+        doSetup(null);
+    }
+    
+    void doSetup(Authenticator auth) throws Exception {
+        if (auth == null) {
+            vantiq = new Vantiq(server);
+        } else {
+            vantiq = new Vantiq(server, auth);
+        }
         if (username != null && !username.equals("") && password != null && !password.equals("")) {
             vantiq.authenticate(username, password);
         } else if (token != null && !token.equals("")) {
@@ -94,6 +109,47 @@ public class VantiqIntegrationTest {
 
     @Test
     public void testSelect() throws Exception {
+        performSelectTest();
+    }
+    
+    @Test
+    public void testSelectUserAuthenticator() throws Exception {
+        // Create a new Vantiq instance using user-supplied authenticator
+        vantiq = null;
+        String scheme = new URI(server).getScheme();
+        String proxyUser = System.getProperty(scheme + ".proxyUser");
+        String proxyPw = System.getProperty(scheme + ".proxyPassword");
+        // We'll run with or without proxy and/or authentication as  we want to ensure that this is harmless in all
+        // cases
+        try {
+             // Here, we clear the properties so that we know our authenticator is operating
+             // We do this  inside the try/finally block so that we know they get reset at the end of the try block.
+             System.clearProperty(scheme + ".proxyUser");
+             System.clearProperty(scheme + ".proxyPassword");
+    
+             Authenticator okAuth = new Authenticator() {
+                @Override
+                public Request authenticate(@Nullable Route route, @NotNull Response response) throws IOException {
+                    String credential = Credentials.basic(proxyUser, proxyPw);
+                    return response.request().newBuilder()
+                                   .header("Proxy-Authorization", credential)
+                                   .build();
+                }
+            };
+            doSetup(okAuth);
+            performSelectTest();
+        } finally {
+            // Reset system properties
+            if (proxyUser != null) {
+                System.setProperty(scheme + ".proxyUser", proxyUser);
+            }
+            if (proxyPw != null) {
+                System.setProperty(scheme + ".proxyPassword", proxyPw);
+            }
+        }
+    }
+    
+    void performSelectTest() throws Exception {
         vantiq.select("system.types", null, null, null, handler);
         waitForCompletion();
 
