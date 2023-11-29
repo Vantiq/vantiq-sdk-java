@@ -34,7 +34,7 @@ The integration tests also need Java system properties set before they can run. 
 `server`, e.g. `https://dev.vantiq.com`. Authentication must be provided through either username and password or a
 token. The username and password can be placed in `username` and `password`, or the token can be provided through
 `token`. To set these properties for Gradle add `-D<variable>=<value>` for each property. For IntelliJ put the same in
-the VM options section of the Ron/Debug configurations.
+the VM options section of the Run/Debug configurations.
 
 For example:  
 
