@@ -3,23 +3,38 @@ package io.vantiq.client.internal;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import io.vantiq.client.ResponseHandler;
 import io.vantiq.client.SubscriptionCallback;
 import io.vantiq.client.VantiqError;
 import io.vantiq.client.VantiqResponse;
-import okhttp3.*;
-import okio.ByteString;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import okhttp3.Authenticator;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Credentials;
+import okhttp3.HttpUrl;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import okio.ByteString;
 
 /**
  * Internal class that manages the authenticated access and interface
@@ -37,6 +52,8 @@ public class VantiqSession {
 
     private String   server;
     private int      apiVersion;
+    private Authenticator proxyAuthenticator = null;
+    private Proxy proxy = null;
     private boolean  authenticated;
     private String   accessToken;
     private String   idToken;
@@ -51,11 +68,20 @@ public class VantiqSession {
     public VantiqSession(String server) {
         this(server, DEFAULT_API_VERSION);
     }
-
+    
+    public VantiqSession(String server, Authenticator proxyAuthenticator) {
+        this(server, DEFAULT_API_VERSION, proxyAuthenticator);
+    }
+    
     public VantiqSession(String server, int apiVersion) {
+        this(server, apiVersion, null);
+    }
+    public VantiqSession(String server, int apiVersion, Authenticator proxyAuthenticator) {
         super();
         this.server     = server;
         this.apiVersion = apiVersion;
+        this.proxyAuthenticator = proxyAuthenticator;
+    
         createClient();
     }
 
@@ -69,15 +95,60 @@ public class VantiqSession {
         //  See https://stackoverflow.com/questions/46807237/protocolexception-expected-status-header-not-present
         //  See https://stackoverflow.com/questions/49643383/http-2-protocol-not-working-with-okhttp
         //
-        List<Protocol> protocols = new ArrayList<Protocol>();
+        List<Protocol> protocols = new ArrayList<>();
         protocols.add(Protocol.HTTP_1_1);
         
-        this.client = new OkHttpClient.Builder()
+        boolean needProxyAuth = setupProxyAuthentication();
+    
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
             .readTimeout(this.readTimeout, TimeUnit.MILLISECONDS)
             .writeTimeout(this.writeTimeout, TimeUnit.MILLISECONDS)
             .connectTimeout(this.connectTimeout, TimeUnit.MILLISECONDS)
-            .protocols(protocols)
-            .build();
+            .protocols(protocols);
+        
+        // If a proxy authenticator has been provided, set up our client to use it.
+        if (needProxyAuth) {
+            builder.proxySelector(ProxySelector.getDefault());
+            // if a proxy authenticator has been provided, use it.  Otherwise, assume things will work out.
+            if (this.proxyAuthenticator != null) {
+                builder.proxyAuthenticator(this.proxyAuthenticator);
+            }
+        }
+        this.client = builder.build();
+    }
+    
+    private boolean setupProxyAuthentication() {
+        if (proxyAuthenticator != null) {
+            return true;
+        } else {
+            try {
+                URI serverUri = new URI(this.server);
+                // ask Java if we're using a proxy.
+                List<Proxy> proxies = ProxySelector.getDefault().select(serverUri);
+                if (proxies.size() == 0 || (proxies.size() == 1  && proxies.get(0).type() == Proxy.NO_PROXY.type())) {
+                    return false;
+                } else {
+                    // Here, we'll need to define ourselves a simple authenticator
+                    String scheme = serverUri.getScheme();
+                    String proxyUser = System.getProperty(scheme.toLowerCase() + ".proxyUser");
+                    String proxyPw = System.getProperty(scheme.toLowerCase() + ".proxyPassword");
+                    if (proxyUser != null && proxyPw != null) {
+                        this.proxyAuthenticator = (route, response) -> {
+                            String credential = Credentials.basic(proxyUser, proxyPw);
+                            return response.request().newBuilder()
+                                           .header("Proxy-Authorization", credential)
+                                           .build();
+                        };
+                    } else {
+                        // If we can't find credentials, fall back to the default Java-provided one.
+                        this.proxyAuthenticator = Authenticator.JAVA_NET_AUTHENTICATOR;
+                    }
+                    return true;
+                }
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     /**
@@ -403,7 +474,6 @@ public class VantiqSession {
                     {
                         this.idToken = idToken.getAsString();
                     }
-
                 }
             }
         }

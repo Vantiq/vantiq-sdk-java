@@ -2,13 +2,11 @@ package io.vantiq.client;
 
 import com.google.gson.*;
 import io.vantiq.client.internal.VantiqSession;
-import okhttp3.Response;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import okhttp3.Authenticator;
+import okhttp3.Response;
 
 /**
  * Vantiq SDK for Java/Android API
@@ -92,7 +90,22 @@ public class Vantiq {
     public Vantiq(String server, int apiVersion) {
         this.session = new VantiqSession(server, apiVersion);
     }
-
+    
+    /**
+     * Constructs a Vantiq SDK instance against a specific Vantiq server
+     * URL using a specific REST API version.
+     * <p>
+     * The proxyAuthenticator is only required when the proxy requires authentication other than Basic user and
+     * password. The internal authenticator will provide those as required, based on the Java standard properties.
+     *
+     * @param server                The URL of the Vantiq server
+     * @param apiVersion            The REST API version to use
+     * @param proxyAuthenticator    okhttp3.Authenticator Used to authenticate with a network proxy.
+     */
+    public Vantiq(String server, int apiVersion, Authenticator proxyAuthenticator) {
+        this.session = new VantiqSession(server, apiVersion, proxyAuthenticator);
+    }
+    
     /**
      * Constructs a Vantiq SDK instance against a specific Vantiq server
      * using the latest version of the API.
@@ -102,7 +115,21 @@ public class Vantiq {
     public Vantiq(String server) {
         this.session = new VantiqSession(server);
     }
-
+    
+    /**
+     * Constructs a Vantiq SDK instance against a specific Vantiq server
+     * using the latest version of the API.
+     * <p>
+     * The proxyAuthenticator is only required when the proxy requires authentication other than Basic user and
+     * password. The internal authenticator will provide those as required, based on the Java standard properties.
+     *
+     * @param server                The URL of the Vantiq server
+     * @param proxyAuthenticator    okhttp3.Authenticator Used to authenticate with a network proxy.
+     */
+    public Vantiq(String server, Authenticator proxyAuthenticator) {
+        this.session = new VantiqSession(server, proxyAuthenticator);
+    }
+    
     /**
      * Returns if this Vantiq instance has been successfully
      * authenticated with the Vantiq server instance.

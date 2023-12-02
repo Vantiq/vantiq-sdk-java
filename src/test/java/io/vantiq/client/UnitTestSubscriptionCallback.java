@@ -69,7 +69,20 @@ public class UnitTestSubscriptionCallback implements SubscriptionCallback {
             wait(timeout);
         }
     }
-
+    
+    public synchronized void waitForConnection(int timeout) throws InterruptedException {
+        long limitTime = System.currentTimeMillis() + timeout;
+        long now = limitTime;
+        while (!this.connected && now <= limitTime) {
+            wait(timeout);
+            now = System.currentTimeMillis();
+        }
+    }
+    
+    public synchronized void waitForConnection() throws InterruptedException {
+        waitForConnection(2000);
+    }
+    
     public synchronized void waitForCompletion() throws InterruptedException {
         waitForCompletion(2000);
     }

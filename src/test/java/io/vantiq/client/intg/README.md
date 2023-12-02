@@ -34,8 +34,43 @@ The integration tests also need Java system properties set before they can run. 
 `server`, e.g. `https://dev.vantiq.com`. Authentication must be provided through either username and password or a
 token. The username and password can be placed in `username` and `password`, or the token can be provided through
 `token`. To set these properties for Gradle add `-D<variable>=<value>` for each property. For IntelliJ put the same in
-the VM options section of the Ron/Debug configurations.
+the VM options section of the Run/Debug configurations.
 
 For example:  
 
-    %  ./gradlew intgtest -Dserver=http://localhost:8080 -Dusername=aaaa -Dpassword=mypwd    
+    %  ./gradlew intgtest -Dserver=http://localhost:8080 -Dusername=aaaa -Dpassword=mypwd 
+
+### HTTP(S) Proxy Integration Tests
+
+To run the integration tests verifying that they work with a network proxy, you will need
+to add a few more properties to the `gradle` command line.
+
+Assume that we have a proxy running on the local machine (port 3128) that does NOT
+require authentication. To run the integration tests using that configuration, use
+
+```shell
+%  ./gradlew intgtest -Dserver=http://localhost:8080 -Dusername=aaaa -Dpassword=mypwd \
+    -DproxyHost=localhost -DproxyPort=3128
+```
+
+If you have the same configuration but it does require BASIC user/password authentication, use
+the following command.
+
+```shell
+%  ./gradlew intgtest -Dserver=http://localhost:8080 -Dusername=aaaa -Dpassword=mypwd \
+    -DproxyHost=localhost -DproxyPort=3128 -DproxyUser=proxyuser -DproxyPassword=proxypwd
+```
+
+where _proxyuser_ and _proxypwd_ are replaced by the appropriate
+values for your proxy configuration.
+
+(Note -- for running the tests, the `build.gradle` file will set these
+properties using the server's scheme.  That is, the executing test
+will see `http.proxyUser` if the `server` property is `http://...`.)
+
+Note that you will need to adjust the properties used to reflect the server URL scheme
+(`http.proxyUser` for a server URL of `http://localhost:8080`). That is, for IntelliJ,
+put the adjusted values in the VM options section of the Ron/Debug configurations.
+
+The `src/test/resources/squidProxy` directory has sample files for configuration of a Squid proxy (v5.9).
+These are just samples -- there is no requirement to make use of them.
