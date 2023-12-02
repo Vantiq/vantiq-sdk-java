@@ -563,7 +563,7 @@ public class VantiqIntegrationTest {
         // These types of subscriptions may be a multi-step process where by > 1 message is required to complete the
         // connection.  callback.waitForCompletion() just waits until some message arrives, not necessarily the
         // connection message.  callback.waitForConnection() will loop (up to the specified (or default) timeout
-        // period until it sees that the connection status is satisfied.  If not (that is, timeout occurs), then it
+        // period) until it sees that the connection status is satisfied.  If not (that is, timeout occurs), then it
         // will return and the assertThat will detect the error state.
         //
         // Note that this is more prevalent (but not exclusive) when the path to the server is more "complicated."
@@ -632,7 +632,7 @@ public class VantiqIntegrationTest {
         // These types of subscriptions may be a multi-step process where by > 1 message is required to complete the
         // connection.  callback.waitForCompletion() just waits until some message arrives, not necessarily the
         // connection message.  callback.waitForConnection() will loop (up to the specified (or default) timeout
-        // period until it sees that the connection status is satisfied.  If not (that is, timeout occurs), then it
+        // period) until it sees that the connection status is satisfied.  If not (that is, timeout occurs), then it
         // will return and the assertThat will detect the error state.
         //
         // Note that this is more prevalent (but not exclusive) when the path to the server is more "complicated."
@@ -722,7 +722,7 @@ public class VantiqIntegrationTest {
         // These types of subscriptions may be a multi-step process where by > 1 message is required to complete the
         // connection.  callback.waitForCompletion() just waits until some message arrives, not necessarily the
         // connection message.  callback.waitForConnection() will loop (up to the specified (or default) timeout
-        // period until it sees that the connection status is satisfied.  If not (that is, timeout occurs), then it
+        // period) until it sees that the connection status is satisfied.  If not (that is, timeout occurs), then it
         // will return and the assertThat will detect the error state.
         //
         // Note that this is more prevalent (but not exclusive) when the path to the server is more "complicated."
