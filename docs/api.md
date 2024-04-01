@@ -23,10 +23,11 @@ CONFIGURATIONS | configurations | ArsRuleConfiguration | Configurations of Vanti
 DOCUMENTS  | documents      | ArsDocument  | Unstructured documents stored in the Vantiq system
 NAMESPACES | namespaces     | ArsNamespace | Namespaces defined in the Vantiq system
 NODES      | nodes          | ArsPeerNode  | Node defined in the Vantiq system to support federation
-PROFILES   | profiles       | ArsProfile   | Vantiq user permission profiles
 PROCEDURES | procedures     | ArsComponent | Procedures defined in the Vantiq system
+PROFILES   | profiles       | ArsProfile   | Vantiq user permission profiles
 RULES      | rules          | ArsRuleSet   | Rules defined in the Vantiq system
 SCALARS    | scalars        | ArsScalar    | User-defined property type definitions
+SERVICES   | services       | ArsSource    | Data sources defined in the Vantiq system
 SOURCES    | sources        | ArsSource    | Data sources defined in the Vantiq system
 TOPICS     | topics         | ArsTopic     | User-defined topics in the Vantiq system
 TYPES      | types          | ArsType      | Data types defined in the Vantiq system
@@ -670,8 +671,8 @@ VantiqResponse vantiq.publish(String resource, String id, Object payload)
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
 resource | String | Yes | The name of the resource type to query.
-                           Must be either `SystemResources.TOPICS.value()` or `SystemResources.SOURCES.value()`.
-id       | String | Yes | The name of the Topic or Source (ie: '/test/topic' or  'mqttChannel').
+                           Must be either `SystemResources.SERVICES.value()` or `SystemResources.TOPICS.value()` or `SystemResources.SOURCES.value()`.
+id       | String | Yes | The name of the Service Event Type, Topic or Source (ie: 'testService/inboundTestEvent' or '/test/topic' or  'mqttChannel').
 payload  | Object | Yes | For Topics, the payload is the message to send.  For Sources, this is the parameters for the source.  
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
