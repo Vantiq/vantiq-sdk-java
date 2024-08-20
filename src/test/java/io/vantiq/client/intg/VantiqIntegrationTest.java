@@ -26,6 +26,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 /**
  * Mocked unit tests for the Vantiq
@@ -422,7 +423,7 @@ public class VantiqIntegrationTest {
 
         // Rule should insert the record into TestType
         // so select it to find the record.  However, this may take time so, adding slight delay.
-        Thread.sleep(500);
+        Thread.sleep(1500);
 
         // Select all records and ensure that it was in the list
         JsonObject where = new JsonObject();
@@ -439,7 +440,7 @@ public class VantiqIntegrationTest {
     public void testPublishTopic() throws Exception {
         Date now = new Date();
 
-        String id = "PB-" + now.getTime();
+        String id = "PBT-" + now.getTime();
         JsonObject message = new JsonObject();
         message.addProperty("id", id);
         message.addProperty("ts", getISOString(now));
@@ -458,7 +459,7 @@ public class VantiqIntegrationTest {
 
         // Rule should insert the record into TestType
         // so select it to find the record.  However, this may take time so, adding slight delay.
-        Thread.sleep(500);
+        Thread.sleep(5000);
 
         // Select all records and ensure that it was in the list
         JsonObject where = new JsonObject();
@@ -479,6 +480,10 @@ public class VantiqIntegrationTest {
         vantiq.execute("echo", params, handler);
         waitForCompletion();
 
+        assertThat("No Errors" + handler.getErrors(), handler.success);
+        assertThat("Response body exists", handler.getBodyAsJsonObject() != null);
+        assertThat("Response property exists", handler.getBodyAsJsonObject().get("arg1") != null);
+        
         assertThat("Valid response", handler.getBodyAsJsonObject().get("arg1").getAsDouble(), is(3.14159));
         assertThat("Valid response", handler.getBodyAsJsonObject().get("arg2").getAsString(), is("xxx"));
     }
@@ -489,7 +494,7 @@ public class VantiqIntegrationTest {
 
         // Subscribe to topic
         vantiq.subscribe(Vantiq.SystemResources.SERVICES.value(), "testService/testEvent", null, callback);
-        callback.waitForCompletion();
+        callback.waitForCompletion(5000);
         assertThat("Connected", callback.isConnected(), is(true));
         callback.reset();
 
@@ -499,7 +504,7 @@ public class VantiqIntegrationTest {
         waitForCompletion();
 
         // Wait for the message
-        callback.waitForCompletion();
+        callback.waitForCompletion(5000);
         assertThat("Message received", callback.hasFired(), is(true));
         assertThat("Request Id", callback.getMessage().getHeaders().get("X-Request-Id"),
                 is("/services/testService/testEvent"));
@@ -520,7 +525,7 @@ public class VantiqIntegrationTest {
 
         // Subscribe to topic
         vantiq.subscribe(Vantiq.SystemResources.TOPICS.value(), "/test/topic", null, callback);
-        callback.waitForCompletion();
+        callback.waitForCompletion(5000);
         assertThat("Connected", callback.isConnected(), is(true));
         callback.reset();
 
@@ -915,6 +920,12 @@ public class VantiqIntegrationTest {
         waitForCompletion();
 
         // Ensure the file uploaded successfully
+        if (handler.error) {
+            List<VantiqError> errs = handler.getErrors();
+            assert errs.size() == 1;
+            VantiqError err = errs.get(0);
+            assumeFalse("io.vantiq.resource.not.installed".equals(err.getCode()));
+        }
         assertTrue("Upload succeeded", handler.success);
         assertThat("Correct name",     ((JsonObject) handler.getBody()).get("name").getAsString(), is(fileName));
         assertThat("Correct fileType", ((JsonObject) handler.getBody()).get("fileType").getAsString(), is(contentType));
@@ -959,7 +970,14 @@ public class VantiqIntegrationTest {
         File file = new File(this.getClass().getResource("/" + fileName).getFile());
         String resourcePath = "/resources/" + Vantiq.SystemResources.IMAGES.value();
         VantiqResponse response = vantiq.upload(file, contentType, fileName, resourcePath);
-
+        
+        if (response.hasErrors()) {
+            List<VantiqError> errs = response.getErrors();
+            assert errs.size() == 1;
+            VantiqError err = errs.get(0);
+            assumeFalse("io.vantiq.resource.not.installed".equals(err.getCode()));
+        }
+        
         // Ensure the file uploaded successfully
         assertTrue("Upload succeeded", response.isSuccess());
         assertThat("Correct name",     ((JsonObject) response.getBody()).get("name").getAsString(), is(fileName));
@@ -991,7 +1009,15 @@ public class VantiqIntegrationTest {
         String resourcePath = "/resources/" + Vantiq.SystemResources.VIDEOS.value();
         vantiq.upload(file, "video/mp4", fileName, resourcePath, handler);
         waitForCompletion();
-
+        
+        // Ensure the file uploaded successfully
+        if (handler.error) {
+            List<VantiqError> errs = handler.getErrors();
+            assert errs.size() == 1;
+            VantiqError err = errs.get(0);
+            assumeFalse("io.vantiq.resource.not.installed".equals(err.getCode()));
+        }
+        
         // Ensure the file uploaded successfully
         assertTrue("Upload succeeded", handler.success);
         assertThat("Correct name",     ((JsonObject) handler.getBody()).get("name").getAsString(), is(fileName));
@@ -1027,7 +1053,14 @@ public class VantiqIntegrationTest {
         File file = new File(this.getClass().getResource("/" + fileName).getFile());
         String resourcePath = "/resources/" + Vantiq.SystemResources.VIDEOS.value();
         VantiqResponse response = vantiq.upload(file, "video/mp4", fileName, resourcePath);
-
+        
+        if (response.hasErrors()) {
+            List<VantiqError> errs = response.getErrors();
+            assert errs.size() == 1;
+            VantiqError err = errs.get(0);
+            assumeFalse("io.vantiq.resource.not.installed".equals(err.getCode()));
+        }
+        
         // Ensure the file uploaded successfully
         assertTrue("Upload succeeded", response.isSuccess());
         assertThat("Correct name",     ((JsonObject) response.getBody()).get("name").getAsString(), is(fileName));

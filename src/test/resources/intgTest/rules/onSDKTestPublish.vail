@@ -1,4 +1,4 @@
-RULE onTestPublish
+RULE onSDKTestPublish
 
 WHEN PUBLISH OCCURS ON "/test/topic" AS event
 

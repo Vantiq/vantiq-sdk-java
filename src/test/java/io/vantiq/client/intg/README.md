@@ -11,7 +11,7 @@ The following project must be loaded into an existing Vantiq server for the inte
 to load the artifacts into the server:
 
 * `project/types/TestType.json`: A data type for testing
-* `project/rules/onTestPublish.vail`: A rule that persists an TestType record when an event is fired on `/test/topic`
+* `project/rules/onSDKTestPublish.vail`: A rule that persists an TestType record when an event is fired on `/test/topic`
 * `project/procedures/echo.vail`: A procedure that simply echos the input arguments
 * `project/sources/JSONPlaceholder.json`: A REMOTE source
 * `project/services/testService.json`: A service with an outbound event defined

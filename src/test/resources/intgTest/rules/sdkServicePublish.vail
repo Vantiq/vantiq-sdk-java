@@ -1,4 +1,4 @@
-RULE servicePublish
+RULE sdkServicePublish
 
 WHEN EVENT OCCURS ON "/services/testService/inboundTestEvent" AS event
 
