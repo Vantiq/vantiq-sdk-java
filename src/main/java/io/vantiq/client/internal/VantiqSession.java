@@ -58,6 +58,7 @@ public class VantiqSession {
     private String   accessToken;
     private String   idToken;
     private String   username;
+    private String   targetNamespace;
 
     private long readTimeout = 0;
     private long writeTimeout = 0;
@@ -81,7 +82,7 @@ public class VantiqSession {
         this.server     = server;
         this.apiVersion = apiVersion;
         this.proxyAuthenticator = proxyAuthenticator;
-    
+        this.targetNamespace = null;
         createClient();
     }
 
@@ -175,6 +176,15 @@ public class VantiqSession {
     }
 
     /**
+     * Sets the target namespace for use in future requests to the Vantiq server.
+     *
+     * @param targetNamespace The target namespace to set
+     */
+    public void setTargetNamespace(String targetNamespace) {
+        this.targetNamespace = targetNamespace;
+    }
+
+    /**
      * Returns the current idToken.  If not authenticated, this is null.
      *
      * @return The idToken or null if not an authenticated session or an old Vantiq server
@@ -190,6 +200,15 @@ public class VantiqSession {
      */
     public String getAccessToken() {
         return this.accessToken;
+    }
+
+    /**
+     * Returns the current target namespace token.
+     *
+     * @return The target namespace used for requests
+     */
+    public String getTargetNamespace() {
+        return this.targetNamespace;
     }
 
 
@@ -522,6 +541,11 @@ public class VantiqSession {
         // Add body based on type
         RequestBody reqBody = null;
 
+        if (this.targetNamespace != null)
+        {
+            builder.addHeader("X-Target-Namespace",this.targetNamespace);
+        }
+
         builder.addHeader("Content-Type", PLAIN_TEXT.toString());
         builder.method("POST", RequestBody.create(PLAIN_TEXT, accessToken));
 
@@ -614,6 +638,11 @@ public class VantiqSession {
 
         // Add body based on type
         RequestBody reqBody = null;
+
+        if (this.targetNamespace != null)
+        {
+            builder.addHeader("X-Target-Namespace",this.targetNamespace);
+        }
 
         builder.addHeader("Content-Type", PLAIN_TEXT.toString());
         builder.method("POST", RequestBody.create(PLAIN_TEXT, accessToken));
@@ -877,6 +906,11 @@ public class VantiqSession {
                 
                 builder.addHeader(key,value);
             }
+        }
+
+        if (this.targetNamespace != null)
+        {
+            builder.addHeader("X-Target-Namespace",this.targetNamespace);
         }
         
         // Add body based on type

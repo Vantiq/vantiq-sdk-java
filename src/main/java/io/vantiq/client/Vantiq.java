@@ -1496,6 +1496,23 @@ public class Vantiq {
     }
 
     /**
+     * Sets the target namespace for use in future requests to the Vantiq server.
+     *
+     * @param targetNamespace The target namespace to set for all requests
+     */
+    public void setTargetNamespace(String targetNamespace) {
+        this.session.setTargetNamespace(targetNamespace);
+    }
+
+    /**
+     * Returns the current access token.  If not authenticated, this is null.
+     *
+     * @return The target namespace to be used on all requests
+     */
+    public String getTargetNamespace() {
+        return this.session.getTargetNamespace();
+    }
+    /**
      * Returns the current idToken.  If not authenticated, this is null.
      *
      * @return The idToken or null if not an authenticated session (or an old pre-OAuth Vantiq server)
