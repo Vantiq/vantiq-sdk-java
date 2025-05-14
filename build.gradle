@@ -1,26 +1,17 @@
-buildscript {
-    repositories {
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:5.1.0'
-    }
-}
 
-apply plugin: 'java'
-apply plugin: 'maven'
-apply plugin: 'signing'
-apply plugin: 'com.github.johnrengelman.shadow'
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+    id 'org.jreleaser' version '1.18.0'
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+}
 
 //
 // Project Settings
 //
-group            = 'io.vantiq'
-archivesBaseName = 'vantiq-sdk'
-version          = '1.2.2'
+version = '1.5.0'
+group = 'io.vantiq'
 
 allprojects {
     sourceCompatibility = 1.8
@@ -38,13 +29,13 @@ ext {
 }
 
 dependencies {
-    compile "com.squareup.okhttp3:okhttp:${okhttpVersion}"
-    compile "com.google.code.gson:gson:${gsonVersion}"
-    compile "com.google.guava:guava:${guavaVersion}"
+    api "com.squareup.okhttp3:okhttp:${okhttpVersion}"
+    api "com.google.code.gson:gson:${gsonVersion}"
+    api "com.google.guava:guava:${guavaVersion}"
 
-    testCompile "com.squareup.okhttp3:mockwebserver:${okhttpVersion}"
-    testCompile 'junit:junit:4.13.2'
-    testCompile 'org.hamcrest:hamcrest-library:2.2'
+    testImplementation "com.squareup.okhttp3:mockwebserver:${okhttpVersion}"
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.hamcrest:hamcrest-library:2.2'
 }
 
 tasks.withType(Test) {
@@ -78,81 +69,104 @@ task intgTest(type:Test) {
 }
 
 shadowJar {
-    classifier = 'tests'
+
+    archiveClassifier.set('tests')
     from sourceSets.test.output
-    configurations = [project.configurations.testRuntime]
 }
 
-//
-// Ensure we create sources and javadoc JAR files for publishing
-//
-task sourcesJar(type:Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
-task javadocJar(type:Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
+publishing {
 
-artifacts {
-    archives sourcesJar
-    archives javadocJar
-}
+    publications {
 
-//
-// Sonatype publishing support
-//
-if (rootProject.hasProperty('ossrhUsername') && rootProject.hasProperty('ossrhPassword') &&
-        rootProject.hasProperty('signing.keyId') && rootProject.hasProperty('signing.password') &&
-        rootProject.hasProperty('signing.secretKeyRingFile')) {
+        maven(MavenPublication) {
 
-    signing {
-        sign configurations.archives
-    }
+            from components.java
 
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+            groupId = 'io.vantiq'
+            artifactId = 'vantiq-sdk'
 
-                repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
-                }
+            pom {
+                name = 'Vantiq Java SDK'
+                packaging 'jar'
+                description = 'Vantiq SDK for Java and Android'
+                url = 'https://vantiq.com/'
 
-                snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
-                }
-
-                pom.project {
-                    name 'Vantiq Java SDK'
-                    packaging 'jar'
-                    description 'Vantiq SDK for Java and Android'
-                    url 'https://vantiq.com/'
-
-                    scm {
-                        url 'https://github.com/Vantiq/vantiq-sdk-java'
-                        connection 'scm:git:git://github.com/Vantiq/vantiq-sdk-java.git'
-                        developerConnection 'scm:git:ssh://git@github.com/Vantiq/vantiq-sdk-java.git'
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url ='https://github.com/Vantiq/vantiq-sdk-java/blob/master/LICENSE'
                     }
-
-                    licenses {
-                        license {
-                            name 'MIT License'
-                            url 'https://github.com/Vantiq/vantiq-sdk-java/blob/master/LICENSE'
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id 'vantiq'
-                            name 'Vantiq Development'
-                            email 'ossrh-admin@vantiq.com'
-                        }
+                }
+                scm {
+                    url = 'https://github.com/Vantiq/vantiq-sdk-java'
+                    connection = 'scm:git:git://github.com/Vantiq/vantiq-sdk-java.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/Vantiq/vantiq-sdk-java.git'
+                }
+                developers {
+                    developer {
+                        id = 'vantiq'
+                        name = 'Vantiq Development'
+                        email = 'ossrh-admin@vantiq.com'
                     }
                 }
             }
         }
     }
+
+    repositories {
+        maven {
+            url = layout.buildDirectory.dir('staging-deploy')
+        }
+    }
 }
+
+jreleaser {
+
+    signing {
+        active = 'ALWAYS'
+        armored = true
+        mode = 'FILE'
+    }
+
+    project {
+        inceptionYear = "2024"
+        author("Vantiq")
+        description = "vantiq-sdk"
+    }
+
+    release {
+        github {
+            skipRelease = true
+            skipTag = true
+        }
+    }
+
+    deploy {
+        maven {
+            mavenCentral {
+                sonatype {
+                    active = 'ALWAYS'
+                    url = "https://central.sonatype.com/api/v1/publisher"
+                    stagingRepository('build/staging-deploy')
+                    setAuthorization("Basic")
+                    sign = false            // Don't do this again - breaks checksums on maven
+                    checksums = false       // Don't do this again - breaks checksums on maven
+                    retryDelay = 60
+                    readTimeout = 60
+                    connectTimeout = 60
+                }
+            }
+        }
+    }
+}
+
+signing {
+    sign publishing.publications
+}
+
+
