@@ -32,8 +32,6 @@ SOURCES    | sources        | ArsSource    | Data sources defined in the Vantiq 
 TOPICS     | topics         | ArsTopic     | User-defined topics in the Vantiq system
 TYPES      | types          | ArsType      | Data types defined in the Vantiq system
 USERS      | users          | ArsUser      | Vantiq user accounts
-IMAGES     | images         | ArsImages    | Images stored in the Vantiq system
-VIDEOS     | videos         | ArsVideos    | Videos stored in the Vantiq system
 
 Data types defined in the Vantiq system can also be used as resources.  For example, if you define data
 type `MyNewType`, then `MyNewType` is now a legal resource name that can be used in the API methods.
