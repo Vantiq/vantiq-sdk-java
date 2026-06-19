@@ -177,26 +177,6 @@ public class VantiqConnectAuthTest extends VantiqTestBase {
     }
 
     @Test
-    public void testUnauthorizedUploadImage() throws Exception {
-        try {
-            vantiq.upload(new File("/foo/bar/file.jpg"), "image/jpeg", "file.jpg", "/resources/images", null);
-            fail("Should not allow unauthenticated requests");
-        } catch(IllegalStateException ex) {
-            assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
-        }
-    }
-
-    @Test
-    public void testUnauthorizedUploadVideo() throws Exception {
-        try {
-            vantiq.upload(new File("/foo/bar/file.mp4"), "video/mp4", "file.mp4", "/resources/videos", null);
-            fail("Should not allow unauthenticated requests");
-        } catch(IllegalStateException ex) {
-            assertThat(ex.getMessage(), CoreMatchers.is("Not authenticated"));
-        }
-    }
-
-    @Test
     public void testUnauthorizedDownload() throws Exception {
         try {
             vantiq.download("file.txt", null);

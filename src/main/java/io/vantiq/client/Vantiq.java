@@ -27,9 +27,7 @@ public class Vantiq {
         SOURCES("sources"),
         TOPICS("topics"),
         TYPES("types"),
-        USERS("users"),
-        IMAGES("images"),
-        VIDEOS("videos");
+        USERS("users");
 
         private String value;
 
