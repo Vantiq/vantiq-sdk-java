@@ -1062,7 +1062,7 @@ Name | Type | Required | Description
 file | File | Yes | The file to be uploaded
 contentType | String | Yes | The MIME type of the uploaded file (e.g. "image/jpeg")
 String | documentPath | Yes | The "path" of the ArsDocument in Vantiq (e.g. "assets/myDocument.txt")
-String | resourcePath | No | The "path" of the Vantiq resource to which you wish to upload the file (e.g. `"/resources/documents"`, `"/resources/images"`, or `"/resources/videos"`) 
+String | resourcePath | No | The "path" of the Vantiq resource to which you wish to upload the file (e.g. `"/resources/documents"`) 
 
 ### Returns
 
@@ -1084,27 +1084,6 @@ File myFile = ...
 vantiq.upload(myFile, 
               "text/plain", 
               "myAssets/myFile.txt",
-              new BaseResponseHandler() {
-              
-    @Override public void onSuccess(Object body, Response response) {
-        super.onSuccess(body, response);
-        
-        System.out.println("Content Location = " + this.getBodyAsJsonObject().get("content"));
-    }
-    
-});
-```
-
-The following uploads an image file asynchronously, specifying that the image be stored in Vantiq as an image (instead of a 
-document), and prints out the location of the content:
-
-```java
-File myFile = ...
-    
-vantiq.upload(myFile, 
-              "image/jpeg", 
-              "myAssets/myImage.jpg",
-              "/resources/images",
               new BaseResponseHandler() {
               
     @Override public void onSuccess(Object body, Response response) {

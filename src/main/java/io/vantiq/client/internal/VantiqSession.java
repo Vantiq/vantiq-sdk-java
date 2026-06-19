@@ -813,7 +813,7 @@ public class VantiqSession {
     /**
      * Uploads the given file.
      *
-     * @param path The path for the resource to upload into (usually "/resources/documents", "/resources/images" or "resources/videos")
+     * @param path The path for the resource to upload into (usually "/resources/documents")
      * @param file The file to upload
      * @param contentType The MIME type of the file uploaded
      * @param documentPath The path of the file in the Vantiq system
