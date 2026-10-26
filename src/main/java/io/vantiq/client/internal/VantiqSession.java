@@ -18,6 +18,8 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -59,6 +61,7 @@ public class VantiqSession {
     private String   idToken;
     private String   username;
     private String   targetNamespace;
+    private final Map<String,String> defaultHeaders = new LinkedHashMap<String,String>();
 
     private long readTimeout = 0;
     private long writeTimeout = 0;
@@ -209,6 +212,45 @@ public class VantiqSession {
      */
     public String getTargetNamespace() {
         return this.targetNamespace;
+    }
+
+    /**
+     * Sets a header that is sent on every subsequent request made through this session,
+     * for example "X-Impersonate-User".  Setting a null value removes the header.
+     *
+     * @param name The header name
+     * @param value The header value, or null to remove the header
+     */
+    public void setDefaultHeader(String name, String value) {
+        if (value == null) {
+            this.defaultHeaders.remove(name);
+        } else {
+            this.defaultHeaders.put(name, value);
+        }
+    }
+
+    /**
+     * Removes a header previously set with {@link #setDefaultHeader(String, String)}.
+     *
+     * @param name The header name
+     */
+    public void removeDefaultHeader(String name) {
+        this.defaultHeaders.remove(name);
+    }
+
+    /**
+     * Returns an unmodifiable view of the headers sent on every request.
+     *
+     * @return The default headers
+     */
+    public Map<String,String> getDefaultHeaders() {
+        return Collections.unmodifiableMap(this.defaultHeaders);
+    }
+
+    private void applyDefaultHeaders(Request.Builder builder) {
+        for (Map.Entry<String,String> h : this.defaultHeaders.entrySet()) {
+            builder.addHeader(h.getKey(), h.getValue());
+        }
     }
 
 
@@ -546,6 +588,8 @@ public class VantiqSession {
             builder.addHeader("X-Target-Namespace",this.targetNamespace);
         }
 
+        applyDefaultHeaders(builder);
+
         builder.addHeader("Content-Type", PLAIN_TEXT.toString());
         builder.method("POST", RequestBody.create(PLAIN_TEXT, accessToken));
 
@@ -643,6 +687,8 @@ public class VantiqSession {
         {
             builder.addHeader("X-Target-Namespace",this.targetNamespace);
         }
+
+        applyDefaultHeaders(builder);
 
         builder.addHeader("Content-Type", PLAIN_TEXT.toString());
         builder.method("POST", RequestBody.create(PLAIN_TEXT, accessToken));
@@ -751,8 +797,15 @@ public class VantiqSession {
     public VantiqResponse get(String path,
                               Map<String,String> queryParams,
                               ResponseHandler responseHandler) {
+        return this.get(path, queryParams, null, responseHandler);
+    }
+
+    public VantiqResponse get(String path,
+                              Map<String,String> queryParams,
+                              Map<String,String> extraHeaders,
+                              ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "GET", fullpath(path), queryParams, null, null, false, cb);
+        return this.request(authValue(), "GET", fullpath(path), queryParams, extraHeaders, null, false, cb);
     }
 
     /**
@@ -770,8 +823,60 @@ public class VantiqSession {
                                Map<String,String> queryParams,
                                String body,
                                ResponseHandler responseHandler) {
+        return this.post(path, queryParams, null, body, responseHandler);
+    }
+
+    public VantiqResponse post(String path,
+                               Map<String,String> queryParams,
+                               Map<String,String> extraHeaders,
+                               String body,
+                               ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "POST", fullpath(path), queryParams, null, body, false, cb);
+        return this.request(authValue(), "POST", fullpath(path), queryParams, extraHeaders, body, false, cb);
+    }
+
+    /**
+     * Perform a HTTP POST whose response is consumed as a stream.  The response body is
+     * delivered as a BufferedSource rather than being parsed, which is required for
+     * streamed procedure results (JSON array chunks or Server-Sent Events).
+     *
+     * @param path The unencoded partial path for the POST (without any query parameters)
+     * @param queryParams The unencoded query parameters included in the request
+     * @param extraHeaders Optional headers, e.g. Accept: text/event-stream
+     * @param body The JSON request body
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse postStreaming(String path,
+                                        Map<String,String> queryParams,
+                                        Map<String,String> extraHeaders,
+                                        String body,
+                                        ResponseHandler responseHandler) {
+        Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler, true) : null);
+        return this.request(authValue(), "POST", fullpath(path), queryParams, extraHeaders, body, true, cb);
+    }
+
+    /**
+     * Perform a HTTP PATCH request against a given path.
+     *
+     * @param path The unencoded partial path for the PATCH (without any query parameters)
+     * @param queryParams The unencoded query parameters included in the request
+     * @param extraHeaders Optional headers
+     * @param body The JSON request body
+     * @param responseHandler The response handler that is called upon completion.  If null,
+     *                        then the call is performed synchronously and the response is
+     *                        provided as the returned value.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse patch(String path,
+                                Map<String,String> queryParams,
+                                Map<String,String> extraHeaders,
+                                String body,
+                                ResponseHandler responseHandler) {
+        Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
+        return this.request(authValue(), "PATCH", fullpath(path), queryParams, extraHeaders, body, false, cb);
     }
 
     /**
@@ -789,8 +894,16 @@ public class VantiqSession {
                               Map<String,String> queryParams,
                               String body,
                               ResponseHandler responseHandler) {
+        return this.put(path, queryParams, null, body, responseHandler);
+    }
+
+    public VantiqResponse put(String path,
+                              Map<String,String> queryParams,
+                              Map<String,String> extraHeaders,
+                              String body,
+                              ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "PUT", fullpath(path), queryParams, null, body, false, cb);
+        return this.request(authValue(), "PUT", fullpath(path), queryParams, extraHeaders, body, false, cb);
     }
 
     /**
@@ -806,8 +919,15 @@ public class VantiqSession {
     public VantiqResponse delete(String path,
                                  Map<String,String> queryParams,
                                  ResponseHandler responseHandler) {
+        return this.delete(path, queryParams, null, responseHandler);
+    }
+
+    public VantiqResponse delete(String path,
+                                 Map<String,String> queryParams,
+                                 Map<String,String> extraHeaders,
+                                 ResponseHandler responseHandler) {
         Callback cb = (responseHandler != null ? new CallbackAdapter(responseHandler) : null);
-        return this.request(authValue(), "DELETE", fullpath(path), queryParams, null, null, false, cb);
+        return this.request(authValue(), "DELETE", fullpath(path), queryParams, extraHeaders, null, false, cb);
     }
 
     /**
@@ -912,6 +1032,8 @@ public class VantiqSession {
         {
             builder.addHeader("X-Target-Namespace",this.targetNamespace);
         }
+
+        applyDefaultHeaders(builder);
         
         // Add body based on type
         RequestBody reqBody = null;

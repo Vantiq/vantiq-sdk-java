@@ -1,7 +1,9 @@
 package io.vantiq.client.intg;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.internal.LinkedTreeMap;
 import io.vantiq.client.*;
 import okhttp3.Authenticator;
@@ -914,7 +916,17 @@ public class VantiqIntegrationTest {
         // resource comes back as "resource.unknown" or "support ... has not been installed".
         for (Vantiq.SystemResources r : Vantiq.SystemResources.values()) {
             VantiqResponse response = vantiq.count("system." + r.value(), null);
-            assertTrue("Resource " + r.value() + " accepted by server: " + response, response.isSuccess());
+            if (!response.isSuccess()) {
+                // Some resources (e.g. organizations) need extra parameters to be listed, which is a
+                // different failure from the server not knowing the resource at all.
+                assertThat("Resource " + r.value() + " has errors: " + response, response.getErrors(), notNullValue());
+                for (VantiqError error : response.getErrors()) {
+                    assertThat("Resource " + r.value() + " unknown to server: " + response,
+                               error.getCode(), not(containsString("resource.unknown")));
+                    assertThat("Resource " + r.value() + " not installed: " + response,
+                               error.getMessage(), not(containsString("has not been installed")));
+                }
+            }
         }
     }
 
@@ -1061,5 +1073,164 @@ public class VantiqIntegrationTest {
         response = stale.count("system.types", null);
         assertThat("Revoked token rejected", response.isSuccess(), is(false));
         assertThat("Revoked token status", response.getStatusCode(), is(401));
+    }
+
+    //------------------------------------------------------------------------------------
+    // Integration tests for the 1.45 API additions
+    //------------------------------------------------------------------------------------
+
+    private JsonObject insertTestRecord(String prefix, int k) {
+        Date now = new Date();
+        JsonObject record = new JsonObject();
+        record.addProperty("id", prefix + "-" + now.getTime() + "-" + k);
+        record.addProperty("ts", getISOString(now));
+        record.addProperty("x", 1.0);
+        record.addProperty("k", k);
+        VantiqResponse response = vantiq.insert("TestType", record);
+        assertTrue("Insert succeeded: " + response, response.isSuccess());
+        return (JsonObject) response.getBody();
+    }
+
+    @Test
+    public void testSelectWithExcludeProps() throws Exception {
+        JsonObject inserted = insertTestRecord("EXCL", 1);
+        JsonObject where = new JsonObject();
+        where.addProperty("id", inserted.get("id").getAsString());
+
+        VantiqResponse response = vantiq.select("TestType", Arrays.asList("ts", "x"), true, where, null, 0, null);
+        assertTrue("Select succeeded: " + response, response.isSuccess());
+        @SuppressWarnings("unchecked")
+        JsonObject record = ((List<JsonObject>) response.getBody()).get(0);
+        assertThat("Kept property", record.get("k").getAsInt(), is(1));
+        assertThat("Excluded property ts", record.has("ts"), is(false));
+        assertThat("Excluded property x", record.has("x"), is(false));
+    }
+
+    @Test
+    public void testSelectByPost() throws Exception {
+        JsonObject inserted = insertTestRecord("POST", 2);
+        JsonObject where = new JsonObject();
+        where.addProperty("id", inserted.get("id").getAsString());
+
+        VantiqResponse response = vantiq.selectByPost("TestType", Arrays.asList("id", "k"), false, where, null, 10, null);
+        assertTrue("Select by POST succeeded: " + response, response.isSuccess());
+        @SuppressWarnings("unchecked")
+        List<JsonObject> records = (List<JsonObject>) response.getBody();
+        assertThat("Single record", records.size(), is(1));
+        assertThat("Correct record", records.get(0).get("k").getAsInt(), is(2));
+        assertThat("Count header honoured", response.getCount(), is(1));
+
+        // A null where selects everything
+        response = vantiq.selectByPost("TestType", Arrays.asList("id"), false, null, null, 0, null);
+        assertTrue("Unfiltered select succeeded: " + response, response.isSuccess());
+        @SuppressWarnings("unchecked")
+        List<JsonObject> all = (List<JsonObject>) response.getBody();
+        assertThat("At least the inserted record", all.size(), greaterThan(0));
+    }
+
+    @Test
+    public void testPatchOneAndBulk() throws Exception {
+        JsonObject inserted = insertTestRecord("PATCH", 4);
+        String objectId = inserted.get("_id").getAsString();
+
+        JsonArray ops = new JsonArray();
+        JsonObject replace = new JsonObject();
+        replace.addProperty("op", "replace");
+        replace.addProperty("path", "/k");
+        replace.addProperty("value", 40);
+        ops.add(replace);
+
+        VantiqResponse response = vantiq.patch("TestType", objectId, ops);
+        assertTrue("Patch succeeded: " + response, response.isSuccess());
+        assertThat("Patched value returned", ((JsonObject) response.getBody()).get("k").getAsInt(), is(40));
+
+        JsonObject where = new JsonObject();
+        where.addProperty("_id", objectId);
+        JsonArray bulkOps = new JsonArray();
+        JsonObject add = new JsonObject();
+        add.addProperty("op", "add");
+        add.addProperty("path", "/k");
+        add.addProperty("value", 41);
+        bulkOps.add(add);
+
+        response = vantiq.patch("TestType", where, bulkOps, null);
+        assertTrue("Bulk patch succeeded: " + response, response.isSuccess());
+        assertThat("Bulk patch body", (Boolean) response.getBody(), is(true));
+
+        response = vantiq.selectOne("TestType", objectId);
+        assertTrue("Select succeeded: " + response, response.isSuccess());
+        assertThat("Bulk patched value", ((JsonObject) response.getBody()).get("k").getAsInt(), is(41));
+    }
+
+    @Test
+    public void testGetTypeSchema() throws Exception {
+        VantiqResponse response = vantiq.getTypeSchema("TestType");
+        assertTrue("Schema request succeeded: " + response, response.isSuccess());
+        JsonObject schema = (JsonObject) response.getBody();
+        assertThat("Schema title", schema.get("title").getAsString(), is("TestType"));
+        assertThat("Schema type", schema.get("type").getAsString(), is("object"));
+        JsonObject properties = schema.getAsJsonObject("properties");
+        assertThat("k is an integer", properties.getAsJsonObject("k").get("type").getAsString(), is("integer"));
+        assertThat("ts is a date-time", properties.getAsJsonObject("ts").get("format").getAsString(), is("date-time"));
+    }
+
+    @Test
+    public void testExecuteStreamingJson() throws Exception {
+        JsonObject params = new JsonObject();
+        params.addProperty("arg1", 2.5);
+        params.addProperty("arg2", "stream");
+
+        Map<String,String> options = new HashMap<String,String>();
+        options.put("maxBufferSize", "4096");
+        VantiqResponse response = vantiq.executeStreaming("echo", params, options, false);
+        assertTrue("Streamed execute succeeded: " + response, response.isSuccess());
+        assertThat("JSON content", response.getContentType(), containsString("application/json"));
+
+        BufferedSource source = (BufferedSource) response.getBody();
+        JsonObject result = JsonParser.parseString(source.readUtf8()).getAsJsonObject();
+        source.close();
+        assertThat("Echoed arg1", result.get("arg1").getAsDouble(), is(2.5));
+        assertThat("Echoed arg2", result.get("arg2").getAsString(), is("stream"));
+    }
+
+    @Test
+    public void testExecuteStreamingServerSentEvents() throws Exception {
+        JsonObject params = new JsonObject();
+        params.addProperty("arg1", 7);
+        params.addProperty("arg2", "sse");
+
+        VantiqResponse response = vantiq.executeStreaming("echo", params, null, true);
+        assertTrue("Streamed execute succeeded: " + response, response.isSuccess());
+        assertThat("Event stream content", response.getContentType(), containsString("text/event-stream"));
+
+        List<JsonElement> events = ServerSentEventReader.readAll((BufferedSource) response.getBody());
+        assertThat("One event for a single result", events.size(), is(1));
+        assertThat("Echoed arg2", events.get(0).getAsJsonObject().get("arg2").getAsString(), is("sse"));
+    }
+
+    @Test
+    public void testExecuteWithBufferOptions() throws Exception {
+        JsonObject params = new JsonObject();
+        params.addProperty("arg1", 1);
+        params.addProperty("arg2", "opts");
+
+        Map<String,String> options = new HashMap<String,String>();
+        options.put("maxBufferSize", "1024");
+        options.put("maxFlushInterval", "100");
+        VantiqResponse response = vantiq.execute("echo", params, options);
+        assertTrue("Execute with options succeeded: " + response, response.isSuccess());
+        assertThat("Echoed", ((JsonObject) response.getBody()).get("arg2").getAsString(), is("opts"));
+    }
+
+    @Test
+    public void testDefaultHeaderAccepted() throws Exception {
+        // Any unknown header is ignored by the server; this verifies default headers do not break requests
+        vantiq.setDefaultHeader("X-SDK-Test", "intg");
+        try {
+            VantiqResponse response = vantiq.count("system.types", null);
+            assertTrue("Request with default header succeeded: " + response, response.isSuccess());
+        } finally {
+            vantiq.removeDefaultHeader("X-SDK-Test");
+        }
     }
 }

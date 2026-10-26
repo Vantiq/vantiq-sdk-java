@@ -45,14 +45,18 @@ type `MyNewType`, then `MyNewType` is now a legal resource name that can be used
 * [authenticate](#user-content-vantiq-authenticate)
 * [select](#user-content-vantiq-select)
 * [selectOne](#user-content-vantiq-selectOne)
+* [selectByPost](#user-content-vantiq-selectByPost)
 * [count](#user-content-vantiq-count)
 * [insert](#user-content-vantiq-insert)
 * [update](#user-content-vantiq-update)
 * [upsert](#user-content-vantiq-upsert)
 * [delete](#user-content-vantiq-delete)
 * [deleteOne](#user-content-vantiq-deleteOne)
+* [patch](#user-content-vantiq-patch)
+* [getTypeSchema](#user-content-vantiq-getTypeSchema)
 * [publish](#user-content-vantiq-publish)
 * [execute](#user-content-vantiq-execute)
+* [executeStreaming](#user-content-vantiq-executeStreaming)
 * [evaluate](#user-content-vantiq-evaluate)
 * [query](#user-content-vantiq-query)
 * [subscribe](#user-content-vantiq-subscribe)
@@ -86,6 +90,7 @@ VantiqResponse response = vantiq.method(arg1, arg2, ...);
 * [readTimeout](#user-content-vantiq-readTimeout)
 * [writeTimeout](#user-content-vantiq-writeTimeout)
 * [connectTimeout](#user-content-vantiq-connectTimeout)
+* [defaultHeaders](#user-content-vantiq-defaultHeaders)
 
 ### Responses
 
@@ -189,10 +194,27 @@ void vantiq.select(String resource,
                    SortSpec sort, 
                    ResponseHandler handler)
                    
-VantiqResponse vantiq.select(String resource, 
-                             List<String> props, 
-                             Object where, 
+VantiqResponse vantiq.select(String resource,
+                             List<String> props,
+                             Object where,
                              SortSpec sort)
+
+void vantiq.select(String resource,
+                   List<String> props,
+                   boolean excludeProps,
+                   Object where,
+                   SortSpec sort,
+                   long limit,
+                   Map<String,String> options,
+                   ResponseHandler handler)
+
+VantiqResponse vantiq.select(String resource,
+                             List<String> props,
+                             boolean excludeProps,
+                             Object where,
+                             SortSpec sort,
+                             long limit,
+                             Map<String,String> options)
 ```
 
 ### Parameters
@@ -203,6 +225,9 @@ resource | String | Yes | The name of the resource type to query. Must be either
 props| List<String> | No | Specifies the desired properties to be returned in each record.  An empty list or null value means all properties will be returned.
 where | Object | No | Specifies constraints to filter the data.  Null means all records will be returned.  This object uses [Gson](https://github.com/google/gson) to convert to a JSON value for the REST API.
 sort | SortSpec | No | Specifies the desired sort for the result set
+excludeProps | boolean | No | When true, `props` lists the properties to leave out of each record instead of the properties to return
+limit | long | No | The maximum number of records to return.  0 uses the server default.  When set, the total matching count is also requested and available from `getCount()`
+options | Map<String,String> | No | Additional query parameters to send, such as `page`
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 The `props` is an list of property names indciating which properties should be returned.
@@ -275,6 +300,51 @@ vantiq.select(Vantiq.SystemResources.TYPES.value(),
     }
     
 });
+```
+
+## <a id="vantiq-selectByPost"></a> Vantiq.selectByPost
+
+The `selectByPost` method is the same query as `select`, but the `where` clause is
+sent in the request body rather than the URL.  Use it when the where clause is too
+large for a query string.
+
+### Signature
+
+```java
+void vantiq.selectByPost(String resource,
+                         List<String> props,
+                         boolean excludeProps,
+                         Object where,
+                         SortSpec sort,
+                         long limit,
+                         Map<String,String> options,
+                         ResponseHandler handler)
+
+VantiqResponse vantiq.selectByPost(String resource,
+                                   List<String> props,
+                                   boolean excludeProps,
+                                   Object where,
+                                   SortSpec sort,
+                                   long limit,
+                                   Map<String,String> options)
+```
+
+### Parameters
+
+The parameters are the same as for `select`.  A null `where` selects every record.
+
+### Returns
+
+The `selectByPost` method returns a body of type `List<JsonObject>` providing the list of matching records.
+
+### Example
+
+```java
+JsonObject where = new JsonObject();
+where.addProperty("status", "open");
+
+VantiqResponse response = vantiq.selectByPost("MyType", null, false, where, null, 0, null);
+List<JsonObject> records = (List<JsonObject>) response.getBody();
 ```
 
 ## <a id="vantiq-selectOne"></a> Vantiq.selectOne
@@ -642,6 +712,98 @@ vantiq.deleteOne("TestType", "23425231ad31f", new BaseResponseHandler() {
 });
 ```
 
+## <a id="vantiq-patch"></a> Vantiq.patch
+
+The `patch` method applies a list of patch operations to one record, or to every
+record matching a `where` clause.  Operations follow
+[JSON Patch](http://tools.ietf.org/html/rfc6902): each is an object with
+`op`, `path` and, where needed, `value` or `from`.
+
+### Signature
+
+```java
+void vantiq.patch(String resource, String id, Object operations, ResponseHandler handler)
+
+VantiqResponse vantiq.patch(String resource, String id, Object operations)
+
+void vantiq.patch(String resource,
+                  Object where,
+                  Object operations,
+                  Map<String,String> options,
+                  ResponseHandler handler)
+
+VantiqResponse vantiq.patch(String resource,
+                            Object where,
+                            Object operations,
+                            Map<String,String> options)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+resource | String | Yes | The name of the resource containing the record(s)
+id | String | Yes | The id of the single record to patch
+where | Object | Yes | Constraints selecting the records to patch in bulk
+operations | Object | Yes | An array of patch operations.  Converted to JSON using Gson; null values are preserved
+options | Map<String,String> | No | Additional query parameters for a bulk patch, such as `count`
+handler | ResponseHandler | Yes | Listener that is called upon success or failure
+
+A single-record patch supports the ops `add`, `replace`, `remove`, `copy`, `move`
+and `test`, plus the Vantiq extensions `create`, `merge` and `removeIfExists`.  A
+bulk patch supports only `add`, `create`, `merge`, `remove` and `removeIfExists`.
+
+### Returns
+
+For a single record, the body is the updated record as a `JsonObject`, or `true`
+when the server returns no content.  For a bulk patch the body is `true`, or the
+number of records updated when `count=true` is passed in `options` and the server
+reports it.
+
+### Example
+
+```java
+JsonArray ops = new JsonArray();
+JsonObject op = new JsonObject();
+op.addProperty("op", "replace");
+op.addProperty("path", "/status");
+op.addProperty("value", "closed");
+ops.add(op);
+
+VantiqResponse response = vantiq.patch("MyType", recordId, ops);
+```
+
+## <a id="vantiq-getTypeSchema"></a> Vantiq.getTypeSchema
+
+The `getTypeSchema` method returns the JSON Schema describing a type's properties.
+
+### Signature
+
+```java
+void vantiq.getTypeSchema(String typeName, ResponseHandler handler)
+
+VantiqResponse vantiq.getTypeSchema(String typeName)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+typeName | String | Yes | The name of the type
+handler | ResponseHandler | Yes | Listener that is called upon success or failure
+
+### Returns
+
+The body is a `JsonObject` with `title`, `type`, `properties` and `required` entries.
+Each property has a `type` and, for dates, a `format` of `date-time`.
+
+### Example
+
+```java
+VantiqResponse response = vantiq.getTypeSchema("MyType");
+JsonObject properties = ((JsonObject) response.getBody()).getAsJsonObject("properties");
+```
+
 ## <a id="vantiq-publish"></a> Vantiq.publish
 
 The `publish` method supports publishing to a topic or a source.
@@ -735,6 +897,10 @@ take parameters (i.e. arguments) and produce a result.
 void vantiq.execute(String procedure, Object params, ResponseHandler response)
 
 VantiqResponse vantiq.execute(String procedure, Object params)
+
+void vantiq.execute(String procedure, Object params, Map<String,String> options, ResponseHandler response)
+
+VantiqResponse vantiq.execute(String procedure, Object params, Map<String,String> options)
 ```
 
 ### Parameters
@@ -742,7 +908,8 @@ VantiqResponse vantiq.execute(String procedure, Object params)
 Name | Type | Required | Description
 :--: | :--: | :------:| -----------
 procedure | String | Yes | The name of the procedure to execute
-params | Object | No | An object that holds the parameters. 
+params | Object | No | An object that holds the parameters.
+options | Map<String,String> | No | Additional query parameters.  `maxBufferSize` (bytes, 512 to 1048576) and `maxFlushInterval` (milliseconds) control buffering of streamed results
 handler | ResponseHandler | Yes | Listener that is called upon success or failure
 
 The parameters may be provided as an array where the arguments are given in order.
@@ -786,6 +953,54 @@ vantiq.execute("sum", params, new BaseResponseHandler() {
         System.out.println("The sum of 1 + 2 = " + this.getBodyAsJsonObject().get("total"));
     }
 
+});
+```
+
+## <a id="vantiq-executeStreaming"></a> Vantiq.executeStreaming
+
+The `executeStreaming` method executes a procedure and streams the result instead of
+waiting for it to complete.  The response body is an okio `BufferedSource` that the
+caller reads and must close.
+
+### Signature
+
+```java
+void vantiq.executeStreaming(String procedure,
+                             Object params,
+                             Map<String,String> options,
+                             boolean serverSentEvents,
+                             ResponseHandler handler)
+
+VantiqResponse vantiq.executeStreaming(String procedure,
+                                       Object params,
+                                       Map<String,String> options,
+                                       boolean serverSentEvents)
+```
+
+### Parameters
+
+Name | Type | Required | Description
+:--: | :--: | :------:| -----------
+procedure | String | Yes | The name of the procedure to execute
+params | Object | No | An object that holds the parameters
+options | Map<String,String> | No | Additional query parameters such as `maxBufferSize` and `maxFlushInterval`, which apply to the JSON form only
+serverSentEvents | boolean | Yes | When false the server sends `application/json`: a bare value for a single result, or a JSON array written incrementally for a sequence.  When true the server sends `text/event-stream` with one `data:` event per element
+handler | ResponseHandler | Yes | Listener that is called upon success or failure
+
+### Returns
+
+The body is a `BufferedSource`.  For Server-Sent Events, `ServerSentEventReader`
+parses the stream: `readAll` collects every event's JSON payload, and `read` hands
+each event to an `EventHandler` as it arrives.
+
+### Example
+
+```java
+VantiqResponse response = vantiq.executeStreaming("generateReport", params, null, true);
+ServerSentEventReader.read((BufferedSource) response.getBody(), new ServerSentEventReader.EventHandler() {
+    @Override public void onEvent(JsonElement data) {
+        System.out.println("row: " + data);
+    }
 });
 ```
 
@@ -1302,6 +1517,22 @@ The default value is _0_.
 
 
 
+
+## <a id="vantiq-defaultHeaders"></a> Vantiq.defaultHeaders [Map<String,String>]
+
+Headers sent on every request made through this `Vantiq` instance, including
+authentication, refresh and revoke.  Use this for headers such as
+`X-Impersonate-User`.  The raw `post`, `put` and `del` methods also accept a
+per-request `Map<String,String> extraHeaders` argument for headers that should not
+persist.
+
+```java
+vantiq.setDefaultHeader("X-Impersonate-User", "someone");
+Map<String,String> headers = vantiq.getDefaultHeaders();
+vantiq.removeDefaultHeader("X-Impersonate-User");
+```
+
+Setting a header to `null` removes it.
 
 # <a id="VantiqResponse"></a> VantiqResponse
 

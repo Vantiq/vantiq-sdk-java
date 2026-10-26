@@ -14,16 +14,45 @@ import okhttp3.Response;
 public class Vantiq {
 
     public enum SystemResources {
-        DOCUMENTS("documents"),
+        AUDITS("audits"),
+        CATALOGS("catalogs"),
+        CLIENTS("clients"),
+        COLLABORATIONS("collaborations"),
+        COLLABORATION_TYPES("collaborationtypes"),
         CONFIGURATIONS("configurations"),
+        DESIGN_MODELS("designmodels"),
+        DISCUSSIONS("discussions"),
+        DOCUMENTS("documents"),
+        EVENT_GENERATORS("eventgenerators"),
+        GENAI_FLOWS("genaiflows"),
+        GROUPS("groups"),
+        K8S_CLUSTERS("k8sclusters"),
+        K8S_INSTALLATIONS("k8sinstallations"),
+        LLMS("llms"),
         NAMESPACES("namespaces"),
         NODES("nodes"),
+        ORGANIZATIONS("organizations"),
         PROCEDURES("procedures"),
         PROFILES("profiles"),
+        PROJECTS("projects"),
         RULES("rules"),
+        SCHEDULED_EVENTS("scheduledevents"),
+        SECRETS("secrets"),
+        SEMANTIC_INDEXES("semanticindexes"),
         SERVICES("services"),
+        SERVICE_CONNECTORS("serviceconnectors"),
         SOURCES("sources"),
+        SOURCE_IMPLS("sourceimpls"),
+        STORAGE_MANAGERS("storagemanagers"),
+        SUBSCRIPTIONS("subscriptions"),
+        SYSTEM_MODELS("systemmodels"),
+        TESTS("tests"),
+        TEST_REPORTS("testreports"),
+        TEST_SUITES("testsuites"),
+        TEST_SUITE_REPORTS("testsuitereports"),
+        TOKENS("tokens"),
         TOPICS("topics"),
+        TRACKING_REGIONS("trackingRegions"),
         TYPES("types"),
         USERS("users");
 
@@ -39,6 +68,12 @@ public class Vantiq {
     }
 
     private static Gson gson = new Gson();
+
+    /**
+     * Gson that keeps null values.  Patch operations use null meaningfully
+     * (e.g. {"op": "replace", "path": "/k", "value": null}), so it must not be stripped.
+     */
+    private static final Gson gsonWithNulls = new GsonBuilder().serializeNulls().create();
 
     public enum TypeOperation {
         INSERT, UPDATE, DELETE
@@ -302,6 +337,35 @@ public class Vantiq {
 
 
 
+    private Map<String,String> buildSelectParams(List<String> propSpecs,
+                                                 boolean excludeProps,
+                                                 Object where,
+                                                 SortSpec sortSpec,
+                                                 long limit,
+                                                 Map<String,String> options) {
+        Map<String,String> queryParams = new HashMap<String,String>();
+        if (options != null) {
+            queryParams.putAll(options);
+        }
+        if(propSpecs != null) {
+            queryParams.put("props", VantiqSession.gson.toJson(propSpecs));
+            if (excludeProps) {
+                queryParams.put("excludeProps", "true");
+            }
+        }
+        if(where != null) {
+            queryParams.put("where", VantiqSession.gson.toJson(where));
+        }
+        if(sortSpec != null) {
+            queryParams.put("sort", VantiqSession.gson.toJson(sortSpec.serialize()));
+        }
+        if (limit > 0) {
+            queryParams.put("limit", Long.toString(limit));
+            queryParams.put("count", "true");
+        }
+        return queryParams;
+    }
+
     public String buildPath(String qualifiedName, String id)
     {
         String path;
@@ -343,18 +407,55 @@ public class Vantiq {
                        Object where,
                        SortSpec sortSpec,
                        ResponseHandler responseHandler) {
-        String path = this.buildPath(resource,null);
+        this.select(resource, propSpecs, false, where, sortSpec, 0L, null, responseHandler);
+    }
 
-        Map<String,String> queryParams = new HashMap<String,String>();
-        if(propSpecs != null) {
-            queryParams.put("props", VantiqSession.gson.toJson(propSpecs));
-        }
-        if(where != null) {
-            queryParams.put("where", VantiqSession.gson.toJson(where));
-        }
-        if(sortSpec != null) {
-            queryParams.put("sort", VantiqSession.gson.toJson(sortSpec.serialize()));
-        }
+    /**
+     * Performs a query to search for records that match the given constraints, with a limit
+     * and additional query options.  See {@link #select(String, List, boolean, Object, SortSpec, long, Map)}.
+     *
+     * @param resource The resource to query.
+     * @param propSpecs The optional list of properties to return in each record.
+     * @param where The optional where constraint that filters the records returned.
+     * @param sortSpec The optional sort specification to order the returned records.
+     * @param limit The maximum number of records to return, or 0 for the server default.
+     * @param options Additional query parameters to send (e.g. "page"), or null.
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void select(String resource,
+                       List<String> propSpecs,
+                       Object where,
+                       SortSpec sortSpec,
+                       long limit,
+                       Map<String,String> options,
+                       ResponseHandler responseHandler) {
+        this.select(resource, propSpecs, false, where, sortSpec, limit, options, responseHandler);
+    }
+
+    /**
+     * Performs a query to search for records that match the given constraints.  When
+     * excludeProps is true, propSpecs lists the properties to leave out of each record
+     * rather than the properties to return.
+     *
+     * @param resource The resource to query.
+     * @param propSpecs The properties to return, or when excludeProps is true the properties to omit.
+     * @param excludeProps If true, propSpecs is an exclusion list.
+     * @param where The optional where constraint that filters the records returned.
+     * @param sortSpec The optional sort specification to order the returned records.
+     * @param limit The maximum number of records to return, or 0 for the server default.
+     * @param options Additional query parameters to send (e.g. "page"), or null.
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void select(String resource,
+                       List<String> propSpecs,
+                       boolean excludeProps,
+                       Object where,
+                       SortSpec sortSpec,
+                       long limit,
+                       Map<String,String> options,
+                       ResponseHandler responseHandler) {
+        String path = this.buildPath(resource,null);
+        Map<String,String> queryParams = buildSelectParams(propSpecs, excludeProps, where, sortSpec, limit, options);
         this.session.get(path, queryParams, new PassThruResponseHandler(responseHandler) {
             @Override
             public void onSuccess(Object body, Response response) {
@@ -537,29 +638,32 @@ public class Vantiq {
                                  SortSpec sortSpec,
                                  long limit,
                                  Map<String,String> options) {
+        return this.select(resource, propSpecs, false, where, sortSpec, limit, options);
+    }
+
+    /**
+     * Performs a query to search for records that match the given constraints synchronously.
+     * When excludeProps is true, propSpecs lists the properties to leave out of each record
+     * rather than the properties to return.  The response body will be a List of JsonObject objects.
+     *
+     * @param resource The resource to query.
+     * @param propSpecs The properties to return, or when excludeProps is true the properties to omit.
+     * @param excludeProps If true, propSpecs is an exclusion list.
+     * @param where The optional where constraint that filters the records returned.
+     * @param sortSpec The optional sort specification to order the returned records.
+     * @param limit The maximum number of records to return, or 0 for the server default.
+     * @param options Additional query parameters to send (e.g. "page"), or null.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse select(String resource,
+                                 List<String> propSpecs,
+                                 boolean excludeProps,
+                                 Object where,
+                                 SortSpec sortSpec,
+                                 long limit,
+                                 Map<String,String> options) {
         String path = this.buildPath(resource,null);
-
-        Map<String,String> queryParams = new HashMap<String,String>();
-        if(propSpecs != null) {
-            queryParams.put("props", VantiqSession.gson.toJson(propSpecs));
-        }
-        if(where != null) {
-            queryParams.put("where", VantiqSession.gson.toJson(where));
-        }
-        if (options != null) {
-            queryParams.putAll(options);
-        }
-
-        if(sortSpec != null) {
-            queryParams.put("sort", VantiqSession.gson.toJson(sortSpec.serialize()));
-        }
-        
-        if (limit > 0)
-        {
-            queryParams.put("limit", Long.toString(limit));
-            queryParams.put("count", "true");
-        }
-
+        Map<String,String> queryParams = buildSelectParams(propSpecs, excludeProps, where, sortSpec, limit, options);
         VantiqResponse response = this.session.get(path, queryParams, null);
         if(response != null) {
             if(response.getBody() instanceof JsonArray) {
@@ -725,7 +829,23 @@ public class Vantiq {
     public void post(String path,
                        Object object,
                        ResponseHandler responseHandler) {
-        this.session.post(path, null, VantiqSession.gson.toJson(object), responseHandler);
+        this.post(path, object, null, responseHandler);
+    }
+
+    /**
+     * Do a POST of the supplied data using the specified path asynchronously, with
+     * additional request headers.
+     *
+     * @param path The path to use
+     * @param object The object to send.  This will be converted to JSON using Gson.
+     * @param extraHeaders Optional headers to add to this request only
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void post(String path,
+                     Object object,
+                     Map<String,String> extraHeaders,
+                     ResponseHandler responseHandler) {
+        this.session.post(path, null, extraHeaders, VantiqSession.gson.toJson(object), responseHandler);
     }
 
     /**
@@ -737,7 +857,22 @@ public class Vantiq {
      */
     public VantiqResponse post(String path,
                                  Object object) {
-         return this.session.post(path, null, VantiqSession.gson.toJson(object), null);
+         return this.post(path, object, (Map<String,String>) null);
+    }
+
+    /**
+     * Do a POST of the supplied data using the specified path synchronously, with
+     * additional request headers.
+     *
+     * @param path The path to use
+     * @param object The object to send.  This will be converted to JSON using Gson.
+     * @param extraHeaders Optional headers to add to this request only
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse post(String path,
+                               Object object,
+                               Map<String,String> extraHeaders) {
+        return this.session.post(path, null, extraHeaders, VantiqSession.gson.toJson(object), null);
     }
 
     /**
@@ -752,7 +887,23 @@ public class Vantiq {
     public void put(String path,
                      Object object,
                      ResponseHandler responseHandler) {
-        this.session.put(path, null, VantiqSession.gson.toJson(object), responseHandler);
+        this.put(path, object, null, responseHandler);
+    }
+
+    /**
+     * Do a PUT of the supplied data using the specified path asynchronously, with
+     * additional request headers.
+     *
+     * @param path The path to use
+     * @param object The object to send.  This will be converted to JSON using Gson.
+     * @param extraHeaders Optional headers to add to this request only
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void put(String path,
+                    Object object,
+                    Map<String,String> extraHeaders,
+                    ResponseHandler responseHandler) {
+        this.session.put(path, null, extraHeaders, VantiqSession.gson.toJson(object), responseHandler);
     }
 
     /**
@@ -764,7 +915,22 @@ public class Vantiq {
      */
     public VantiqResponse put(String path,
                                Object object) {
-        return this.session.put(path, null, VantiqSession.gson.toJson(object), null);
+        return this.put(path, object, (Map<String,String>) null);
+    }
+
+    /**
+     * Do a PUT of the supplied data using the specified path synchronously, with
+     * additional request headers.
+     *
+     * @param path The path to use
+     * @param object The object to send.  This will be converted to JSON using Gson.
+     * @param extraHeaders Optional headers to add to this request only
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse put(String path,
+                              Object object,
+                              Map<String,String> extraHeaders) {
+        return this.session.put(path, null, extraHeaders, VantiqSession.gson.toJson(object), null);
     }
 
     /**
@@ -776,7 +942,21 @@ public class Vantiq {
      */
     public void del(String path,
                           ResponseHandler responseHandler) {
-        this.session.delete(path, null, new PassThruResponseHandler(responseHandler) {
+        this.del(path, null, responseHandler);
+    }
+
+    /**
+     * Do a DELETE using the specified path asynchronously, with additional request headers.
+     * The response is a boolean indicating the success of the removal.
+     *
+     * @param path The path to use
+     * @param extraHeaders Optional headers to add to this request only
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void del(String path,
+                    Map<String,String> extraHeaders,
+                    ResponseHandler responseHandler) {
+        this.session.delete(path, null, extraHeaders, new PassThruResponseHandler(responseHandler) {
             @Override
             public void onSuccess(Object body, Response response) {
                 this.delegate.onSuccess(true, response);
@@ -792,7 +972,19 @@ public class Vantiq {
      * @return The response from the Vantiq server
      */
     public VantiqResponse del(String path) {
-        VantiqResponse response = this.session.delete(path, null, null);
+        return this.del(path, (Map<String,String>) null);
+    }
+
+    /**
+     * Do a DELETE using the specified path synchronously, with additional request headers.
+     * The response is a boolean indicating the success of the removal.
+     *
+     * @param path The path to use
+     * @param extraHeaders Optional headers to add to this request only
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse del(String path, Map<String,String> extraHeaders) {
+        VantiqResponse response = this.session.delete(path, null, extraHeaders, null);
         if(response != null && response.isSuccess()) {
             response.setBody(true);
         }
@@ -1122,8 +1314,27 @@ public class Vantiq {
     public void execute(String procedure,
                         Object params,
                         ResponseHandler responseHandler) {
+        this.execute(procedure, params, null, responseHandler);
+    }
+
+    /**
+     * Executes a specific procedure asynchronously with additional server options passed as
+     * query parameters.  Recognized options include "maxBufferSize" and "maxFlushInterval",
+     * which control how streamed results are buffered.  For a streamed result use
+     * {@link #executeStreaming(String, Object, Map, boolean, ResponseHandler)}, which hands the raw
+     * response to the handler instead of parsing it.
+     *
+     * @param procedure The name of the procedure to execute.
+     * @param params The arguments for the procedure, converted to JSON using Gson.
+     * @param options Query parameters to send with the request, or null.
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void execute(String procedure,
+                        Object params,
+                        Map<String,String> options,
+                        ResponseHandler responseHandler) {
         String path = "/resources/" + SystemResources.PROCEDURES.value() + "/" + procedure;
-        this.session.post(path, null, VantiqSession.gson.toJson(params), responseHandler);
+        this.session.post(path, options, VantiqSession.gson.toJson(params), responseHandler);
     }
 
     /**
@@ -1138,8 +1349,308 @@ public class Vantiq {
      */
     public VantiqResponse execute(String procedure,
                                   Object params) {
+        return this.execute(procedure, params, (Map<String,String>) null);
+    }
+
+    /**
+     * Executes a specific procedure synchronously with additional server options passed as
+     * query parameters.  See {@link #execute(String, Object, Map, ResponseHandler)}.
+     *
+     * @param procedure The name of the procedure to execute.
+     * @param params The arguments for the procedure, converted to JSON using Gson.
+     * @param options Query parameters to send with the request, or null.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse execute(String procedure,
+                                  Object params,
+                                  Map<String,String> options) {
         String path = "/resources/" + SystemResources.PROCEDURES.value() + "/" + procedure;
-        return this.session.post(path, null, VantiqSession.gson.toJson(params), null);
+        return this.session.post(path, options, VantiqSession.gson.toJson(params), null);
+    }
+
+    private static Map<String,String> withStream(Map<String,String> options) {
+        Map<String,String> queryParams = new HashMap<String,String>();
+        if (options != null) {
+            queryParams.putAll(options);
+        }
+        queryParams.put("stream", "true");
+        return queryParams;
+    }
+
+    private static Map<String,String> acceptHeader(boolean serverSentEvents) {
+        Map<String,String> headers = new HashMap<String,String>();
+        headers.put("Accept", serverSentEvents ? "text/event-stream" : "application/json");
+        return headers;
+    }
+
+    /**
+     * Executes a specific procedure asynchronously and streams the result.  The response body
+     * handed to the handler is an okio BufferedSource that the caller reads and must close.
+     *
+     * When serverSentEvents is false the server sends <code>application/json</code>: a bare
+     * JSON value for a single result, or a JSON array written incrementally for a sequence.
+     * When true the server sends <code>text/event-stream</code>, one <code>data:</code> event
+     * per element, which {@link ServerSentEventReader} can parse.
+     *
+     * Options may include "maxBufferSize" (bytes, 512 to 1048576) and "maxFlushInterval"
+     * (milliseconds), which apply to the JSON form only.
+     *
+     * @param procedure The name of the procedure to execute.
+     * @param params The arguments for the procedure, converted to JSON using Gson.
+     * @param options Additional query parameters, or null.
+     * @param serverSentEvents If true, request the result as Server-Sent Events.
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void executeStreaming(String procedure,
+                                 Object params,
+                                 Map<String,String> options,
+                                 boolean serverSentEvents,
+                                 ResponseHandler responseHandler) {
+        String path = "/resources/" + SystemResources.PROCEDURES.value() + "/" + procedure;
+        this.session.postStreaming(path, withStream(options), acceptHeader(serverSentEvents),
+                                   VantiqSession.gson.toJson(params), responseHandler);
+    }
+
+    /**
+     * Executes a specific procedure synchronously and streams the result.  See
+     * {@link #executeStreaming(String, Object, Map, boolean, ResponseHandler)}.  The response
+     * body is an okio BufferedSource that the caller reads and must close.
+     *
+     * @param procedure The name of the procedure to execute.
+     * @param params The arguments for the procedure, converted to JSON using Gson.
+     * @param options Additional query parameters, or null.
+     * @param serverSentEvents If true, request the result as Server-Sent Events.
+     * @return The response from the Vantiq server
+     */
+    public VantiqResponse executeStreaming(String procedure,
+                                           Object params,
+                                           Map<String,String> options,
+                                           boolean serverSentEvents) {
+        String path = "/resources/" + SystemResources.PROCEDURES.value() + "/" + procedure;
+        return this.session.postStreaming(path, withStream(options), acceptHeader(serverSentEvents),
+                                          VantiqSession.gson.toJson(params), null);
+    }
+
+    /**
+     * Performs a query asynchronously, sending the where clause in the request body rather
+     * than the URL.  Use this when the where clause is too large for a query string.  All
+     * other parameters behave as in {@link #select(String, List, boolean, Object, SortSpec, long, Map, ResponseHandler)}.
+     *
+     * @param resource The resource to query.
+     * @param propSpecs The properties to return, or when excludeProps is true the properties to omit.
+     * @param excludeProps If true, propSpecs is an exclusion list.
+     * @param where The where constraint, sent as the request body.  Null selects everything.
+     * @param sortSpec The optional sort specification to order the returned records.
+     * @param limit The maximum number of records to return, or 0 for the server default.
+     * @param options Additional query parameters to send (e.g. "page"), or null.
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void selectByPost(String resource,
+                             List<String> propSpecs,
+                             boolean excludeProps,
+                             Object where,
+                             SortSpec sortSpec,
+                             long limit,
+                             Map<String,String> options,
+                             ResponseHandler responseHandler) {
+        String path = this.buildPath(resource,null) + "/select";
+        Map<String,String> queryParams = buildSelectParams(propSpecs, excludeProps, null, sortSpec, limit, options);
+        String body = (where != null ? VantiqSession.gson.toJson(where) : "{}");
+        this.session.post(path, queryParams, body, new PassThruResponseHandler(responseHandler) {
+            @Override
+            public void onSuccess(Object body, Response response) {
+                this.delegate.onSuccess(toObjectList(body), response);
+            }
+        });
+    }
+
+    /**
+     * Performs a query synchronously, sending the where clause in the request body rather
+     * than the URL.  See {@link #selectByPost(String, List, boolean, Object, SortSpec, long, Map, ResponseHandler)}.
+     *
+     * @param resource The resource to query.
+     * @param propSpecs The properties to return, or when excludeProps is true the properties to omit.
+     * @param excludeProps If true, propSpecs is an exclusion list.
+     * @param where The where constraint, sent as the request body.  Null selects everything.
+     * @param sortSpec The optional sort specification to order the returned records.
+     * @param limit The maximum number of records to return, or 0 for the server default.
+     * @param options Additional query parameters to send (e.g. "page"), or null.
+     * @return The response from the Vantiq server; the body is a List of JsonObject.
+     */
+    public VantiqResponse selectByPost(String resource,
+                                       List<String> propSpecs,
+                                       boolean excludeProps,
+                                       Object where,
+                                       SortSpec sortSpec,
+                                       long limit,
+                                       Map<String,String> options) {
+        String path = this.buildPath(resource,null) + "/select";
+        Map<String,String> queryParams = buildSelectParams(propSpecs, excludeProps, null, sortSpec, limit, options);
+        String body = (where != null ? VantiqSession.gson.toJson(where) : "{}");
+        VantiqResponse response = this.session.post(path, queryParams, body, null);
+        if (response != null) {
+            response.setBody(toObjectList(response.getBody()));
+        }
+        return response;
+    }
+
+    /**
+     * Applies a list of patch operations to a single record asynchronously.  The operations
+     * follow JSON Patch (RFC 6902): <code>[{"op": "replace", "path": "/k", "value": 1}]</code>.
+     * Supported ops are add, replace, remove, copy, move, test, plus the Vantiq extensions
+     * create, merge and removeIfExists.  The response body is the updated record, or true
+     * when the server returns no content.
+     *
+     * @param resource The resource containing the record.
+     * @param id The id of the record to patch.
+     * @param operations The patch operations.  Converted to JSON using Gson; must be an array.
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void patch(String resource,
+                      String id,
+                      Object operations,
+                      ResponseHandler responseHandler) {
+        String path = this.buildPath(resource, id);
+        this.session.patch(path, null, null, gsonWithNulls.toJson(operations), new PassThruResponseHandler(responseHandler) {
+            @Override
+            public void onSuccess(Object body, Response response) {
+                this.delegate.onSuccess(isEmptyBody(body) ? Boolean.TRUE : body, response);
+            }
+        });
+    }
+
+    /**
+     * Applies a list of patch operations to a single record synchronously.  See
+     * {@link #patch(String, String, Object, ResponseHandler)}.
+     *
+     * @param resource The resource containing the record.
+     * @param id The id of the record to patch.
+     * @param operations The patch operations.  Converted to JSON using Gson; must be an array.
+     * @return The response from the Vantiq server; the body is the updated record, or true.
+     */
+    public VantiqResponse patch(String resource,
+                                String id,
+                                Object operations) {
+        String path = this.buildPath(resource, id);
+        VantiqResponse response = this.session.patch(path, null, null, gsonWithNulls.toJson(operations), null);
+        if (response != null && response.isSuccess() && isEmptyBody(response.getBody())) {
+            response.setBody(true);
+        }
+        return response;
+    }
+
+    /**
+     * Applies a list of patch operations to every record matching the where clause,
+     * asynchronously.  Only add, create, merge, remove and removeIfExists are allowed for
+     * bulk patches.  The response body is true on success; when the options include
+     * <code>count=true</code> and the server supports it, the body is the number of
+     * records updated instead.
+     *
+     * @param resource The resource containing the records.
+     * @param where The where constraint selecting the records to patch.  Required.
+     * @param operations The patch operations.  Converted to JSON using Gson; must be an array.
+     * @param options Additional query parameters (e.g. "count"), or null.
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void patch(String resource,
+                      Object where,
+                      Object operations,
+                      Map<String,String> options,
+                      ResponseHandler responseHandler) {
+        String path = this.buildPath(resource, null);
+        Map<String,String> queryParams = new HashMap<String,String>();
+        if (options != null) {
+            queryParams.putAll(options);
+        }
+        queryParams.put("where", VantiqSession.gson.toJson(where));
+        this.session.patch(path, queryParams, null, gsonWithNulls.toJson(operations), new PassThruResponseHandler(responseHandler) {
+            @Override
+            public void onSuccess(Object body, Response response) {
+                this.delegate.onSuccess(bulkPatchResult(response), response);
+            }
+        });
+    }
+
+    /**
+     * Applies a list of patch operations to every record matching the where clause,
+     * synchronously.  See {@link #patch(String, Object, Object, Map, ResponseHandler)}.
+     *
+     * @param resource The resource containing the records.
+     * @param where The where constraint selecting the records to patch.  Required.
+     * @param operations The patch operations.  Converted to JSON using Gson; must be an array.
+     * @param options Additional query parameters (e.g. "count"), or null.
+     * @return The response from the Vantiq server; the body is true, or the count when requested.
+     */
+    public VantiqResponse patch(String resource,
+                                Object where,
+                                Object operations,
+                                Map<String,String> options) {
+        String path = this.buildPath(resource, null);
+        Map<String,String> queryParams = new HashMap<String,String>();
+        if (options != null) {
+            queryParams.putAll(options);
+        }
+        queryParams.put("where", VantiqSession.gson.toJson(where));
+        VantiqResponse response = this.session.patch(path, queryParams, null, gsonWithNulls.toJson(operations), null);
+        if (response != null && response.isSuccess()) {
+            response.setBody(response.getCount() >= 0 ? (Object) Integer.valueOf(response.getCount()) : Boolean.TRUE);
+        }
+        return response;
+    }
+
+    /**
+     * Returns the JSON Schema for a type asynchronously.  The response body is a JsonObject
+     * with "title", "type", "properties" and "required" entries describing the type.
+     *
+     * @param typeName The name of the type.
+     * @param responseHandler The response handler that is called upon completion.
+     */
+    public void getTypeSchema(String typeName,
+                              ResponseHandler responseHandler) {
+        String path = "/resources/" + SystemResources.TYPES.value() + "/" + typeName + "/_schema";
+        this.session.get(path, null, responseHandler);
+    }
+
+    /**
+     * Returns the JSON Schema for a type synchronously.  See {@link #getTypeSchema(String, ResponseHandler)}.
+     *
+     * @param typeName The name of the type.
+     * @return The response from the Vantiq server; the body is the schema as a JsonObject.
+     */
+    public VantiqResponse getTypeSchema(String typeName) {
+        String path = "/resources/" + SystemResources.TYPES.value() + "/" + typeName + "/_schema";
+        return this.session.get(path, null, null);
+    }
+
+    private static Object toObjectList(Object body) {
+        if (body instanceof JsonArray) {
+            JsonArray arr = (JsonArray) body;
+            List<JsonObject> resultBody = new ArrayList<JsonObject>();
+            for (int i = 0; i < arr.size(); i++) {
+                if (!arr.get(i).isJsonObject()) {
+                    return body;
+                }
+                resultBody.add(arr.get(i).getAsJsonObject());
+            }
+            return resultBody;
+        }
+        return body;
+    }
+
+    private static boolean isEmptyBody(Object body) {
+        return body == null || (body instanceof byte[] && ((byte[]) body).length == 0);
+    }
+
+    private static Object bulkPatchResult(Response response) {
+        String count = response.header("X-Total-Count");
+        if (count != null) {
+            try {
+                return Integer.valueOf(count);
+            } catch (NumberFormatException ignored) {
+                // fall through
+            }
+        }
+        return Boolean.TRUE;
     }
     
     
@@ -1507,6 +2018,35 @@ public class Vantiq {
      */
     public String getTargetNamespace() {
         return this.session.getTargetNamespace();
+    }
+
+    /**
+     * Sets a header that is sent on every subsequent request, for example
+     * "X-Impersonate-User".  A null value removes the header.
+     *
+     * @param name The header name
+     * @param value The header value, or null to remove it
+     */
+    public void setDefaultHeader(String name, String value) {
+        this.session.setDefaultHeader(name, value);
+    }
+
+    /**
+     * Removes a header previously set with {@link #setDefaultHeader(String, String)}.
+     *
+     * @param name The header name
+     */
+    public void removeDefaultHeader(String name) {
+        this.session.removeDefaultHeader(name);
+    }
+
+    /**
+     * Returns the headers sent on every request.
+     *
+     * @return An unmodifiable map of header names to values
+     */
+    public Map<String,String> getDefaultHeaders() {
+        return this.session.getDefaultHeaders();
     }
     /**
      * Returns the current idToken.  If not authenticated, this is null.

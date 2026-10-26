@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import okio.BufferedSource;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -841,5 +843,322 @@ public class VantiqRequestTest extends VantiqTestBase {
 
         assertTrue("Successful response", handler.success);
         assertThat("Content path", handler.getBodyAsJsonObject().get("content").getAsString(), is("/docs/assets/testFile.txt"));
+    }
+
+    //------------------------------------------------------------------------------------
+    // Tests for the 1.45 API additions
+    //------------------------------------------------------------------------------------
+
+    private MockResponse jsonResponse(int code, String body) {
+        return new MockResponse()
+                .setResponseCode(code)
+                .setHeader("Content-Type", "application/json")
+                .setBody(body);
+    }
+
+    private HttpUrl requestUrl(RecordedRequest request) {
+        return HttpUrl.parse("http://localhost" + request.getPath());
+    }
+
+    @Test
+    public void testSystemResourcesIncludeCurrentResources() {
+        Set<String> values = new HashSet<String>();
+        for (Vantiq.SystemResources r : Vantiq.SystemResources.values()) {
+            values.add(r.value());
+        }
+        for (String expected : Arrays.asList("secrets", "llms", "semanticindexes", "tests", "testsuites",
+                                             "discussions", "projects", "groups", "tokens")) {
+            assertThat(expected + " defined", values, hasItem(expected));
+        }
+    }
+
+    @Test
+    public void testSelectWithExcludeProps() throws Exception {
+        server.enqueue(jsonResponse(200, "[]"));
+
+        Map<String,String> options = new HashMap<String,String>();
+        options.put("page", "2");
+        vantiq.select("MyType", Arrays.asList("secret", "big"), true, null, new SortSpec("a", false), 25, options, handler);
+        waitForCompletion();
+
+        HttpUrl url = requestUrl(server.takeRequest());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/custom/MyType"));
+        assertThat("props sent", url.queryParameter("props"), is("[\"secret\",\"big\"]"));
+        assertThat("excludeProps sent", url.queryParameter("excludeProps"), is("true"));
+        assertThat("sort sent", url.queryParameter("sort"), is("{\"a\":1}"));
+        assertThat("limit sent", url.queryParameter("limit"), is("25"));
+        assertThat("count sent with limit", url.queryParameter("count"), is("true"));
+        assertThat("option passed through", url.queryParameter("page"), is("2"));
+        assertTrue("Successful response", handler.success);
+    }
+
+    @Test
+    public void testSelectWithoutExcludePropsOmitsParameter() throws Exception {
+        server.enqueue(jsonResponse(200, "[]"));
+        vantiq.select("MyType", Arrays.asList("a"), null, null, 0, null, handler);
+        waitForCompletion();
+
+        HttpUrl url = requestUrl(server.takeRequest());
+        assertThat("props sent", url.queryParameter("props"), is("[\"a\"]"));
+        assertThat("excludeProps absent", url.queryParameter("excludeProps"), nullValue());
+        assertThat("limit absent", url.queryParameter("limit"), nullValue());
+    }
+
+    @Test
+    public void testSelectByPost() throws Exception {
+        server.enqueue(jsonResponse(200, "[{\"_id\":\"1\",\"k\":42}]"));
+
+        JsonObject where = new JsonObjectBuilder().addProperty("k", 42).obj();
+        vantiq.selectByPost("MyType", Arrays.asList("k"), false, where, null, 10, null, handler);
+        waitForCompletion();
+
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = requestUrl(request);
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/custom/MyType/select"));
+        assertThat("Valid method", request.getMethod(), is("POST"));
+        assertThat("where not in query", url.queryParameter("where"), nullValue());
+        assertThat("props in query", url.queryParameter("props"), is("[\"k\"]"));
+        assertThat("limit in query", url.queryParameter("limit"), is("10"));
+        assertThat("where sent as body", gson.fromJson(request.getBody().readUtf8(), JsonObject.class), is(where));
+
+        assertTrue("Successful response", handler.success);
+        assertThat("Body converted to list", handler.getBodyAsList().get(0).get("k").getAsInt(), is(42));
+    }
+
+    @Test
+    public void testSelectByPostWithoutWhereSendsEmptyObject() throws Exception {
+        server.enqueue(jsonResponse(200, "[]"));
+        vantiq.selectByPost("system.types", null, false, null, null, 0, null, handler);
+        waitForCompletion();
+
+        RecordedRequest request = server.takeRequest();
+        assertThat("Valid path", requestUrl(request).encodedPath(), is("/api/v1/resources/types/select"));
+        assertThat("Empty where body", request.getBody().readUtf8(), is("{}"));
+    }
+
+    @Test
+    public void testPatchOne() throws Exception {
+        server.enqueue(jsonResponse(200, "{\"_id\":\"abc\",\"k\":5}"));
+
+        JsonArray ops = gson.fromJson("[{\"op\":\"replace\",\"path\":\"/k\",\"value\":5}]", JsonArray.class);
+        vantiq.patch("MyType", "abc", ops, handler);
+        waitForCompletion();
+
+        RecordedRequest request = server.takeRequest();
+        assertThat("Valid path", requestUrl(request).encodedPath(), is("/api/v1/resources/custom/MyType/abc"));
+        assertThat("Valid method", request.getMethod(), is("PATCH"));
+        assertThat("Operations sent as body", gson.fromJson(request.getBody().readUtf8(), JsonArray.class), is(ops));
+
+        assertTrue("Successful response", handler.success);
+        assertThat("Updated record returned", handler.getBodyAsJsonObject().get("k").getAsInt(), is(5));
+    }
+
+    @Test
+    public void testPatchOneNoContent() throws Exception {
+        server.enqueue(new MockResponse().setResponseCode(204));
+
+        vantiq.patch("MyType", "abc", new JsonArray(), handler);
+        waitForCompletion();
+
+        server.takeRequest();
+        assertTrue("Successful response", handler.success);
+        assertThat("Body is true when server returns no content", handler.getBodyAsBoolean(), is(true));
+    }
+
+    @Test
+    public void testPatchBulk() throws Exception {
+        server.enqueue(jsonResponse(200, "{}"));
+
+        JsonObject where = new JsonObjectBuilder().addProperty("k", 1).obj();
+        JsonArray ops = gson.fromJson("[{\"op\":\"add\",\"path\":\"/flag\",\"value\":true}]", JsonArray.class);
+        vantiq.patch("MyType", where, ops, null, handler);
+        waitForCompletion();
+
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = requestUrl(request);
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/custom/MyType"));
+        assertThat("Valid method", request.getMethod(), is("PATCH"));
+        assertThat("where in query", url.queryParameter("where"), is("{\"k\":1}"));
+        assertThat("count not requested by default", url.queryParameter("count"), nullValue());
+
+        assertTrue("Successful response", handler.success);
+        assertThat("Body is true without a count header", handler.getBodyAsBoolean(), is(true));
+    }
+
+    @Test
+    public void testPatchBulkWithCount() throws Exception {
+        server.enqueue(jsonResponse(200, "{}").setHeader("X-Total-Count", "7"));
+
+        Map<String,String> options = new HashMap<String,String>();
+        options.put("count", "true");
+        vantiq.patch("MyType", new JsonObject(), new JsonArray(), options, handler);
+        waitForCompletion();
+
+        HttpUrl url = requestUrl(server.takeRequest());
+        assertThat("count requested", url.queryParameter("count"), is("true"));
+        assertTrue("Successful response", handler.success);
+        assertThat("Body is the count", handler.getBodyAsInt(), is(7));
+    }
+
+    @Test
+    public void testGetTypeSchema() throws Exception {
+        server.enqueue(jsonResponse(200, "{\"title\":\"MyType\",\"type\":\"object\",\"properties\":{\"k\":{\"type\":\"integer\"}},\"required\":[]}"));
+
+        vantiq.getTypeSchema("MyType", handler);
+        waitForCompletion();
+
+        RecordedRequest request = server.takeRequest();
+        assertThat("Valid path", requestUrl(request).encodedPath(), is("/api/v1/resources/types/MyType/_schema"));
+        assertThat("Valid method", request.getMethod(), is("GET"));
+
+        assertTrue("Successful response", handler.success);
+        assertThat("Schema title", handler.getBodyAsJsonObject().get("title").getAsString(), is("MyType"));
+        assertThat("Schema property", handler.getBodyAsJsonObject().getAsJsonObject("properties").getAsJsonObject("k").get("type").getAsString(), is("integer"));
+    }
+
+    @Test
+    public void testExecuteWithOptions() throws Exception {
+        server.enqueue(jsonResponse(200, "{\"r\":1}"));
+
+        Map<String,String> options = new HashMap<String,String>();
+        options.put("maxBufferSize", "1024");
+        options.put("maxFlushInterval", "250");
+        vantiq.execute("myProc", new JsonObject(), options, handler);
+        waitForCompletion();
+
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = requestUrl(request);
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/procedures/myProc"));
+        assertThat("maxBufferSize sent", url.queryParameter("maxBufferSize"), is("1024"));
+        assertThat("maxFlushInterval sent", url.queryParameter("maxFlushInterval"), is("250"));
+        assertThat("stream not forced", url.queryParameter("stream"), nullValue());
+        assertTrue("Successful response", handler.success);
+    }
+
+    @Test
+    public void testExecuteStreamingJson() throws Exception {
+        server.enqueue(jsonResponse(200, "[{\"i\":1},{\"i\":2}]"));
+
+        vantiq.executeStreaming("myProc", new JsonObject(), null, false, handler);
+        waitForCompletion();
+
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = requestUrl(request);
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/procedures/myProc"));
+        assertThat("stream requested", url.queryParameter("stream"), is("true"));
+        assertThat("JSON accepted", request.getHeader("Accept"), is("application/json"));
+
+        assertTrue("Successful response", handler.success);
+        assertThat("Body is a stream", handler.getBody(), instanceOf(BufferedSource.class));
+        BufferedSource source = (BufferedSource) handler.getBody();
+        JsonArray results = gson.fromJson(source.readUtf8(), JsonArray.class);
+        source.close();
+        assertThat("Two results", results.size(), is(2));
+        assertThat("Second result", results.get(1).getAsJsonObject().get("i").getAsInt(), is(2));
+    }
+
+    @Test
+    public void testExecuteStreamingServerSentEvents() throws Exception {
+        server.enqueue(new MockResponse()
+                               .setResponseCode(200)
+                               .setHeader("Content-Type", "text/event-stream")
+                               .setBody("data: {\"i\":1}\n\ndata: {\"i\":2}\n\n"));
+
+        Map<String,String> options = new HashMap<String,String>();
+        options.put("maxBufferSize", "2048");
+        vantiq.executeStreaming("myProc", new JsonObject(), options, true, handler);
+        waitForCompletion();
+
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = requestUrl(request);
+        assertThat("stream requested", url.queryParameter("stream"), is("true"));
+        assertThat("options kept", url.queryParameter("maxBufferSize"), is("2048"));
+        assertThat("SSE accepted", request.getHeader("Accept"), is("text/event-stream"));
+
+        assertTrue("Successful response", handler.success);
+        List<JsonElement> events = ServerSentEventReader.readAll((BufferedSource) handler.getBody());
+        assertThat("Two events", events.size(), is(2));
+        assertThat("First event", events.get(0).getAsJsonObject().get("i").getAsInt(), is(1));
+        assertThat("Second event", events.get(1).getAsJsonObject().get("i").getAsInt(), is(2));
+    }
+
+    @Test
+    public void testDefaultHeadersSentOnEveryRequest() throws Exception {
+        vantiq.setDefaultHeader("X-Impersonate-User", "someone");
+        assertThat("Header recorded", vantiq.getDefaultHeaders().get("X-Impersonate-User"), is("someone"));
+
+        // select (GET)
+        server.enqueue(jsonResponse(200, "[]"));
+        vantiq.select("MyType", null, null, null, handler);
+        waitForCompletion();
+        assertThat("Sent on GET", server.takeRequest().getHeader("X-Impersonate-User"), is("someone"));
+
+        // insert (POST)
+        server.enqueue(jsonResponse(200, "{}"));
+        handler.reset();
+        vantiq.insert("MyType", new JsonObject(), handler);
+        waitForCompletion();
+        assertThat("Sent on POST", server.takeRequest().getHeader("X-Impersonate-User"), is("someone"));
+
+        // delete (DELETE)
+        server.enqueue(new MockResponse().setResponseCode(204));
+        handler.reset();
+        vantiq.deleteOne("MyType", "abc", handler);
+        waitForCompletion();
+        assertThat("Sent on DELETE", server.takeRequest().getHeader("X-Impersonate-User"), is("someone"));
+
+        // refresh goes through its own request builder
+        server.enqueue(jsonResponse(200, "{\"accessToken\":\"t2\"}"));
+        handler.reset();
+        vantiq.refresh(vantiq.getAccessToken(), handler);
+        waitForCompletion();
+        assertThat("Sent on refresh", server.takeRequest().getHeader("X-Impersonate-User"), is("someone"));
+
+        // removing the header stops it being sent
+        vantiq.removeDefaultHeader("X-Impersonate-User");
+        assertThat("Header removed", vantiq.getDefaultHeaders().containsKey("X-Impersonate-User"), is(false));
+        server.enqueue(jsonResponse(200, "[]"));
+        handler.reset();
+        vantiq.select("MyType", null, null, null, handler);
+        waitForCompletion();
+        assertThat("Not sent after removal", server.takeRequest().getHeader("X-Impersonate-User"), nullValue());
+    }
+
+    @Test
+    public void testDefaultHeaderNullValueRemoves() throws Exception {
+        vantiq.setDefaultHeader("X-Extra", "1");
+        vantiq.setDefaultHeader("X-Extra", null);
+        assertThat("Null value removes header", vantiq.getDefaultHeaders().containsKey("X-Extra"), is(false));
+    }
+
+    @Test
+    public void testRawVerbsWithExtraHeaders() throws Exception {
+        Map<String,String> extra = new HashMap<String,String>();
+        extra.put("X-Impersonate-User", "someone");
+
+        server.enqueue(jsonResponse(200, "{}"));
+        vantiq.post("/resources/custom/MyType", new JsonObject(), extra, handler);
+        waitForCompletion();
+        assertThat("POST header", server.takeRequest().getHeader("X-Impersonate-User"), is("someone"));
+
+        server.enqueue(jsonResponse(200, "{}"));
+        handler.reset();
+        vantiq.put("/resources/custom/MyType/abc", new JsonObject(), extra, handler);
+        waitForCompletion();
+        assertThat("PUT header", server.takeRequest().getHeader("X-Impersonate-User"), is("someone"));
+
+        server.enqueue(new MockResponse().setResponseCode(204));
+        handler.reset();
+        vantiq.del("/resources/custom/MyType/abc", extra, handler);
+        waitForCompletion();
+        assertThat("DELETE header", server.takeRequest().getHeader("X-Impersonate-User"), is("someone"));
+        assertThat("DELETE body is true", handler.getBodyAsBoolean(), is(true));
+
+        // Per-call headers do not stick
+        server.enqueue(jsonResponse(200, "{}"));
+        handler.reset();
+        vantiq.post("/resources/custom/MyType", new JsonObject(), handler);
+        waitForCompletion();
+        assertThat("Header not retained", server.takeRequest().getHeader("X-Impersonate-User"), nullValue());
     }
 }
