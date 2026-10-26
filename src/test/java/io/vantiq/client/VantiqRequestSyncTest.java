@@ -1,5 +1,7 @@
 package io.vantiq.client;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
@@ -14,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.*;
@@ -535,5 +538,189 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
         assertTrue("Successful response", response.isSuccess());
         assertThat("Valid body - name", ((JsonObject) response.getBody()).get("name").getAsString(), is("testFile.txt"));
         assertThat("Valid body - fileType", ((JsonObject) response.getBody()).get("fileType").getAsString(), is("text/plain"));
+    }
+
+    //------------------------------------------------------------------------------------
+    // Tests for previously untested API surface (synchronous forms)
+    //------------------------------------------------------------------------------------
+
+    private JsonObject batchRequest(String method, String uri) {
+        JsonObject headers = new JsonObject();
+        headers.addProperty("Content-type", "application/json");
+        JsonObject req = new JsonObject();
+        req.addProperty("method", method);
+        req.add("headers", headers);
+        req.addProperty("uri", uri);
+        return req;
+    }
+
+    @Test
+    public void testBatch() throws Exception {
+        server.enqueue(new MockResponse()
+                               .setResponseCode(201)
+                               .setHeader("Content-Type", "application/json")
+                               .setBody("[{\"status\":200,\"headers\":{},\"body\":[{\"name\":\"TestType\"}]},"
+                                        + "{\"status\":204,\"headers\":{},\"body\":null}]"));
+
+        JsonArray requests = new JsonArray();
+        requests.add(batchRequest("GET", "/types?where=%7B%22name%22%3A%22TestType%22%7D"));
+        requests.add(batchRequest("DELETE", "/custom/TestType/abc"));
+
+        VantiqResponse response = vantiq.batch(requests);
+
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/batch"));
+        assertThat("Valid method", request.getMethod(), is("POST"));
+
+        JsonArray sent = gson.fromJson(request.getBody().readUtf8(), JsonArray.class);
+        for (JsonElement e : sent) {
+            assertThat("Authorization added to each sub-request",
+                       e.getAsJsonObject().getAsJsonObject("headers").get("Authorization").getAsString(),
+                       is("Bearer 234592dadf23412"));
+        }
+
+        assertTrue("Successful response", response.isSuccess());
+        @SuppressWarnings("unchecked")
+        List<JsonObject> results = (List<JsonObject>) response.getBody();
+        assertThat("One result per sub-request", results.size(), is(2));
+        assertThat("Select status", results.get(0).get("status").getAsInt(), is(200));
+        assertThat("Delete status", results.get(1).get("status").getAsInt(), is(204));
+    }
+
+    @Test
+    public void testTargetNamespaceHeader() throws Exception {
+        vantiq.setTargetNamespace("otherNS");
+        server.enqueue(new MockResponse()
+                               .setResponseCode(200)
+                               .setHeader("Content-Type", "application/json")
+                               .setBody("[]"));
+        vantiq.select("MyType", null, null, null);
+
+        RecordedRequest request = server.takeRequest();
+        assertThat("X-Target-Namespace header sent", request.getHeader("X-Target-Namespace"), is("otherNS"));
+    }
+
+    @Test
+    public void testRefresh() throws Exception {
+        server.enqueue(new MockResponse()
+                               .setResponseCode(200)
+                               .setHeader("Content-Type", "application/json")
+                               .setBody(new JsonObjectBuilder()
+                                                .addProperty("accessToken", "refreshedToken")
+                                                .addProperty("idToken", "refreshedIdToken")
+                                                .json()));
+
+        VantiqResponse response = vantiq.refresh(vantiq.getAccessToken());
+
+        RecordedRequest request = server.takeRequest();
+        assertThat("Valid path", request.getPath(), is("/authenticate/refresh"));
+        assertThat("Valid method", request.getMethod(), is("POST"));
+        assertThat("Token sent as body", request.getBody().readUtf8(), is("234592dadf23412"));
+
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Body is true", (Boolean) response.getBody(), is(true));
+        assertThat("Access token replaced", vantiq.getAccessToken(), is("refreshedToken"));
+        assertThat("idToken replaced", vantiq.getIdToken(), is("refreshedIdToken"));
+        assertThat("Still authenticated", vantiq.isAuthenticated(), is(true));
+    }
+
+    @Test
+    public void testRevoke() throws Exception {
+        server.enqueue(new MockResponse().setResponseCode(204));
+
+        VantiqResponse response = vantiq.revoke(vantiq.getAccessToken());
+
+        RecordedRequest request = server.takeRequest();
+        assertThat("Valid path", request.getPath(), is("/authenticate/revoke"));
+        assertThat("Valid method", request.getMethod(), is("POST"));
+        assertThat("Token sent as body", request.getBody().readUtf8(), is("234592dadf23412"));
+
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Body is true", (Boolean) response.getBody(), is(true));
+        assertThat("No longer authenticated", vantiq.isAuthenticated(), is(false));
+        assertThat("Access token cleared", vantiq.getAccessToken(), nullValue());
+    }
+
+    @Test
+    public void testGetNamespaceUsers() throws Exception {
+        server.enqueue(new MockResponse()
+                               .setResponseCode(200)
+                               .setHeader("Content-Type", "application/json")
+                               .setBody(new JsonArrayBuilder()
+                                                .add(new JsonObjectBuilder().addProperty("username", "joe").addProperty("preferredUsername", "Joe").obj())
+                                                .json()));
+
+        VantiqResponse response = vantiq.getNamespaceUsers("myNS");
+
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Valid path", url.encodedPath(), is("/api/v1/resources/namespaces/myNS/authorizedUsers"));
+        assertThat("Valid method", request.getMethod(), is("GET"));
+
+        assertTrue("Successful response", response.isSuccess());
+        JsonArray users = (JsonArray) response.getBody();
+        assertThat("Username", users.get(0).getAsJsonObject().get("username").getAsString(), is("joe"));
+    }
+
+    @Test
+    public void testRawGet() throws Exception {
+        server.enqueue(new MockResponse()
+                               .setResponseCode(200)
+                               .setHeader("Content-Type", "application/json")
+                               .setBody("{\"buildInfo\":{\"version\":\"1.0\"}}"));
+
+        Map<String,String> queryParams = new HashMap<String,String>();
+        queryParams.put("limit", "5");
+        Map<String,String> extraHeaders = new HashMap<String,String>();
+        extraHeaders.put("X-Extra-Header", "extra");
+
+        VantiqResponse response = vantiq.rawGet("api/v1/_status", queryParams, extraHeaders);
+
+        RecordedRequest request = server.takeRequest();
+        HttpUrl url = HttpUrl.parse("http://localhost" + request.getPath());
+        assertThat("Raw path used as-is", url.encodedPath(), is("/api/v1/_status"));
+        assertThat("Query parameter sent", url.queryParameter("limit"), is("5"));
+        assertThat("Extra header sent", request.getHeader("X-Extra-Header"), is("extra"));
+
+        assertTrue("Successful response", response.isSuccess());
+        assertThat("Body parsed", ((JsonObject) response.getBody()).getAsJsonObject("buildInfo").get("version").getAsString(), is("1.0"));
+    }
+
+    @Test
+    public void testRawPostPutDel() throws Exception {
+        JsonObject record = new JsonObjectBuilder().addProperty("k", 42).obj();
+
+        server.enqueue(new MockResponse()
+                               .setResponseCode(200)
+                               .setHeader("Content-Type", "application/json")
+                               .setBody(new JsonObjectBuilder().addProperty("_id", "abc").addProperty("k", 42).json()));
+        VantiqResponse response = vantiq.post("/resources/custom/MyType", record);
+        RecordedRequest request = server.takeRequest();
+        assertThat("POST path", HttpUrl.parse("http://localhost" + request.getPath()).encodedPath(), is("/api/v1/resources/custom/MyType"));
+        assertThat("POST method", request.getMethod(), is("POST"));
+        assertThat("POST body", gson.fromJson(request.getBody().readUtf8(), JsonObject.class), is(record));
+        assertTrue("POST succeeded", response.isSuccess());
+        assertThat("POST response", ((JsonObject) response.getBody()).get("_id").getAsString(), is("abc"));
+
+        server.enqueue(new MockResponse()
+                               .setResponseCode(200)
+                               .setHeader("Content-Type", "application/json")
+                               .setBody(new JsonObjectBuilder().addProperty("_id", "abc").addProperty("k", 13).json()));
+        record.addProperty("k", 13);
+        response = vantiq.put("/resources/custom/MyType/abc", record);
+        request = server.takeRequest();
+        assertThat("PUT path", HttpUrl.parse("http://localhost" + request.getPath()).encodedPath(), is("/api/v1/resources/custom/MyType/abc"));
+        assertThat("PUT method", request.getMethod(), is("PUT"));
+        assertTrue("PUT succeeded", response.isSuccess());
+        assertThat("PUT response", ((JsonObject) response.getBody()).get("k").getAsInt(), is(13));
+
+        server.enqueue(new MockResponse().setResponseCode(204));
+        response = vantiq.del("/resources/custom/MyType/abc");
+        request = server.takeRequest();
+        assertThat("DELETE path", HttpUrl.parse("http://localhost" + request.getPath()).encodedPath(), is("/api/v1/resources/custom/MyType/abc"));
+        assertThat("DELETE method", request.getMethod(), is("DELETE"));
+        assertTrue("DELETE succeeded", response.isSuccess());
+        assertThat("DELETE body is true", (Boolean) response.getBody(), is(true));
     }
 }
