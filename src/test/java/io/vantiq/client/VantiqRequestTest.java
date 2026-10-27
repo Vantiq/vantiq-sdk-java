@@ -533,7 +533,7 @@ public class VantiqRequestTest extends VantiqTestBase {
     }
 
     //------------------------------------------------------------------------------------
-    // Tests for previously untested API surface
+    // Tests for batch, namespace, raw request, token and upload operations
     //------------------------------------------------------------------------------------
 
     @Test

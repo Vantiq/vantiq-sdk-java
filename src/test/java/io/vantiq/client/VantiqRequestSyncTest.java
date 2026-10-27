@@ -541,7 +541,7 @@ public class VantiqRequestSyncTest extends VantiqTestBase {
     }
 
     //------------------------------------------------------------------------------------
-    // Tests for previously untested API surface (synchronous forms)
+    // Tests for batch, namespace, raw request and token operations (synchronous forms)
     //------------------------------------------------------------------------------------
 
     private JsonObject batchRequest(String method, String uri) {

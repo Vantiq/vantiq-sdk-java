@@ -905,7 +905,7 @@ public class VantiqIntegrationTest {
     }
 
     //------------------------------------------------------------------------------------
-    // Integration tests for previously untested API surface
+    // Integration tests for batch, namespace, raw request and token operations
     //------------------------------------------------------------------------------------
 
     @Test
