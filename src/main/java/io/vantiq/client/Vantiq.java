@@ -14,7 +14,6 @@ import okhttp3.Response;
 public class Vantiq {
 
     public enum SystemResources {
-        ANALYTICS_MODELS("analyticsmodels"),
         DOCUMENTS("documents"),
         CONFIGURATIONS("configurations"),
         NAMESPACES("namespaces"),
@@ -22,7 +21,6 @@ public class Vantiq {
         PROCEDURES("procedures"),
         PROFILES("profiles"),
         RULES("rules"),
-        SCALARS("scalars"),
         SERVICES("services"),
         SOURCES("sources"),
         TOPICS("topics"),

@@ -1,5 +1,6 @@
 package io.vantiq.client.intg;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.internal.LinkedTreeMap;
 import io.vantiq.client.*;
@@ -16,6 +17,7 @@ import org.junit.experimental.categories.Category;
 
 import java.io.*;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -27,6 +29,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * Mocked unit tests for the Vantiq
@@ -415,7 +418,7 @@ public class VantiqIntegrationTest {
         // Note: The service event is defined to have an implementing path which is the same as our
         // publish topic (see resources/intgTest/services/testService.json).  Thus, if this publish works,
         // an event will actually be published to the (same) test topic, and the rule defined for that
-        // (onTestPublish.vail) will fire.  Thus, this test has pretty much the same content as testPublishTopic()
+        // (onSDKTestPublish.vail) will fire.  Thus, this test has pretty much the same content as testPublishTopic()
         // below -- just the mechanism by which the "publish" action happens is different.
         vantiq.publish(Vantiq.SystemResources.SERVICES.value(), "testService/inboundTestEvent", message, handler);
         waitForCompletion();
@@ -899,5 +902,164 @@ public class VantiqIntegrationTest {
 
         BufferedSource source = ((BufferedSource) response.getBody());
         assertThat("Correct file content", source.readByteArray(), is(Files.readAllBytes(file.toPath())));
+    }
+
+    //------------------------------------------------------------------------------------
+    // Integration tests for batch, namespace, raw request and token operations
+    //------------------------------------------------------------------------------------
+
+    @Test
+    public void testSystemResourcesRecognizedByServer() throws Exception {
+        // Every resource the SDK advertises must be accepted by the server.  A removed
+        // resource comes back as "resource.unknown" or "support ... has not been installed".
+        for (Vantiq.SystemResources r : Vantiq.SystemResources.values()) {
+            VantiqResponse response = vantiq.count("system." + r.value(), null);
+            assertTrue("Resource " + r.value() + " accepted by server: " + response, response.isSuccess());
+        }
+    }
+
+    private JsonObject batchRequest(String method, String uri) {
+        JsonObject headers = new JsonObject();
+        headers.addProperty("Content-type", "application/json");
+        JsonObject req = new JsonObject();
+        req.addProperty("method", method);
+        req.add("headers", headers);
+        req.addProperty("uri", uri);
+        return req;
+    }
+
+    @Test
+    public void testBatch() throws Exception {
+        String typeQuery = "where=" + URLEncoder.encode("{\"name\":\"TestType\"}", "UTF-8")
+                + "&props=" + URLEncoder.encode("[\"name\"]", "UTF-8");
+        String procQuery = "where=" + URLEncoder.encode("{\"name\":\"echo\"}", "UTF-8")
+                + "&props=" + URLEncoder.encode("[\"name\"]", "UTF-8");
+
+        JsonArray requests = new JsonArray();
+        requests.add(batchRequest("GET", "/types?" + typeQuery));
+        requests.add(batchRequest("GET", "/procedures?" + procQuery));
+
+        VantiqResponse response = vantiq.batch(requests);
+        assertTrue("Batch succeeded: " + response, response.isSuccess());
+
+        @SuppressWarnings("unchecked")
+        List<JsonObject> results = (List<JsonObject>) response.getBody();
+        assertThat("One result per request", results.size(), is(2));
+
+        assertThat("Type lookup status", results.get(0).get("status").getAsInt(), is(200));
+        assertThat("Type lookup body",
+                   results.get(0).getAsJsonArray("body").get(0).getAsJsonObject().get("name").getAsString(),
+                   is("TestType"));
+        assertThat("Procedure lookup status", results.get(1).get("status").getAsInt(), is(200));
+        assertThat("Procedure lookup body",
+                   results.get(1).getAsJsonArray("body").get(0).getAsJsonObject().get("name").getAsString(),
+                   is("echo"));
+    }
+
+    @Test
+    public void testGetNamespaceUsers() throws Exception {
+        // Discover the current namespace from a record we know exists
+        JsonObject where = new JsonObject();
+        where.addProperty("name", "TestType");
+        VantiqResponse response = vantiq.select("system.types", Arrays.asList("ars_namespace"), where, null);
+        assertTrue("Type lookup succeeded: " + response, response.isSuccess());
+        @SuppressWarnings("unchecked")
+        String namespace = ((List<JsonObject>) response.getBody()).get(0).get("ars_namespace").getAsString();
+
+        response = vantiq.getNamespaceUsers(namespace);
+        assertTrue("getNamespaceUsers succeeded: " + response, response.isSuccess());
+
+        JsonArray users = (JsonArray) response.getBody();
+        assertThat("At least one authorized user", users.size(), greaterThan(0));
+        for (int i = 0; i < users.size(); i++) {
+            JsonObject user = users.get(i).getAsJsonObject();
+            assertThat("username present", user.get("username"), notNullValue());
+            assertThat("preferredUsername present", user.get("preferredUsername"), notNullValue());
+        }
+    }
+
+    @Test
+    public void testRawGet() throws Exception {
+        VantiqResponse response = vantiq.rawGet("api/v1/_status", null, null);
+        assertTrue("rawGet succeeded: " + response, response.isSuccess());
+        JsonObject status = (JsonObject) response.getBody();
+        assertThat("Server build info returned", status.get("buildInfo"), notNullValue());
+
+        // Query parameters are passed through on the raw path
+        Map<String,String> queryParams = new HashMap<String,String>();
+        queryParams.put("where", "{\"name\":\"TestType\"}");
+        queryParams.put("props", "[\"name\"]");
+        response = vantiq.rawGet("api/v1/resources/types", queryParams, null);
+        assertTrue("rawGet with params succeeded: " + response, response.isSuccess());
+        JsonArray types = (JsonArray) response.getBody();
+        assertThat("Single type", types.size(), is(1));
+        assertThat("Correct type", types.get(0).getAsJsonObject().get("name").getAsString(), is("TestType"));
+    }
+
+    @Test
+    public void testRawPostPutDelete() throws Exception {
+        Date now = new Date();
+        String id = "RAW-" + now.getTime();
+
+        JsonObject record = new JsonObject();
+        record.addProperty("id", id);
+        record.addProperty("ts", getISOString(now));
+        record.addProperty("x", 1.5);
+        record.addProperty("k", 7);
+
+        // Insert using the raw POST
+        VantiqResponse response = vantiq.post("/resources/custom/TestType", record);
+        assertTrue("POST succeeded: " + response, response.isSuccess());
+        String objectId = ((JsonObject) response.getBody()).get("_id").getAsString();
+
+        // Update using the raw PUT
+        JsonObject update = new JsonObject();
+        update.addProperty("k", 99);
+        response = vantiq.put("/resources/custom/TestType/" + objectId, update);
+        assertTrue("PUT succeeded: " + response, response.isSuccess());
+
+        response = vantiq.selectOne("TestType", objectId);
+        assertTrue("Select after PUT succeeded: " + response, response.isSuccess());
+        assertThat("Updated value", ((JsonObject) response.getBody()).get("k").getAsInt(), is(99));
+
+        // Remove using the raw DELETE; the server answers 204 with no body
+        response = vantiq.del("/resources/custom/TestType/" + objectId);
+        assertTrue("DELETE succeeded: " + response, response.isSuccess());
+        assertThat("DELETE status", response.getStatusCode(), is(204));
+        assertThat("DELETE body", (Boolean) response.getBody(), is(true));
+
+        response = vantiq.selectOne("TestType", objectId);
+        assertThat("Record gone after DELETE", response.isSuccess(), is(false));
+    }
+
+    @Test
+    public void testRefreshAndRevoke() throws Exception {
+        // A token obtained with username/password can be refreshed and revoked without
+        // touching the long-lived token this test run may have been given.
+        // Gradle passes unset properties as empty strings, so check for both null and empty
+        assumeTrue("Requires username and password properties",
+                   username != null && !username.isEmpty() && password != null && !password.isEmpty());
+
+        Vantiq v = new Vantiq(server);
+        VantiqResponse response = v.authenticate(username, password);
+        assertTrue("Authenticated: " + response, response.isSuccess());
+        String original = v.getAccessToken();
+        assertThat("Access token issued", original, notNullValue());
+        assertThat("idToken issued", v.getIdToken(), notNullValue());
+
+        response = v.refresh(original);
+        assertTrue("Refresh succeeded: " + response, response.isSuccess());
+        String refreshed = v.getAccessToken();
+        assertThat("Refreshed token usable", v.count("system.types", null).isSuccess(), is(true));
+
+        response = v.revoke(refreshed);
+        assertTrue("Revoke succeeded: " + response, response.isSuccess());
+        assertThat("Session no longer authenticated", v.isAuthenticated(), is(false));
+
+        Vantiq stale = new Vantiq(server);
+        stale.setAccessToken(refreshed);
+        response = stale.count("system.types", null);
+        assertThat("Revoked token rejected", response.isSuccess(), is(false));
+        assertThat("Revoked token status", response.getStatusCode(), is(401));
     }
 }
